@@ -1,0 +1,20 @@
+
+Ableton Max4Live RVC Unified device
+========================================
+Plug‑and‑play device that you can hook to RVC or other AI processing tools.
+
+1) Install Node deps next to the patch
+   cd device_unified
+   npm install
+
+2) Open and Freeze
+   - Open device_unified/RVC_Unified_Device.maxpat in Max (or click "Edit" on a blank Max Audio Effect in Live).
+   - Click the ❄️ Freeze button (Device menu → Freeze Device).
+   - File → Save As… → RVC_Unified_Device.amxd (or drag to your User Library).
+
+3) Use it
+   - Drag RVC_Unified_Device.amxd into a track.
+   - Backend: Local (server http://YOUR_SERVER:8000, rvc_model YOUR_VOICE) or Replicate (paste API key).
+   - Turn Pitch (st), drop a file, hit Process.
+
+If you see "missing module" errors, re-run step 1 and Freeze again.

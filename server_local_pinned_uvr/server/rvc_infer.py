@@ -1,0 +1,126 @@
+# server/rvc_infer.py
+import os, tempfile, subprocess, contextlib, wave, numpy as np, shutil
+
+def peak_normalize_wav(path, target_db=-0.1):
+    with contextlib.closing(wave.open(path, 'rb')) as wf:
+        n_channels = wf.getnchannels()
+        sampwidth = wf.getsampwidth()
+        framerate = wf.getframerate()
+        n_frames = wf.getnframes()
+        audio = wf.readframes(n_frames)
+    if sampwidth != 2:
+        return
+    samples = np.frombuffer(audio, dtype=np.int16).astype(np.float32)
+    peak = np.max(np.abs(samples)) / 32768.0
+    if peak == 0:
+        return
+    target_amp = 10 ** (target_db / 20.0)
+    gain = target_amp / peak
+    samples = np.clip(samples * gain, -32768, 32767).astype(np.int16)
+    with contextlib.closing(wave.open(path, 'wb')) as wf:
+        wf.setnchannels(n_channels)
+        wf.setsampwidth(2)
+        wf.setframerate(framerate)
+        wf.writeframes(samples.tobytes())
+
+def demucs_separate(in_path, stem='vocals'):
+    """Run Demucs (htdemucs) and return path to requested stem wav."""
+    tmp_out = tempfile.mkdtemp()
+    model = os.environ.get("DEMUCS_MODEL", "htdemucs")
+    cmd = ["demucs", "-n", model, "-o", tmp_out, in_path]
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    base = os.path.splitext(os.path.basename(in_path))[0]
+    out_dir = os.path.join(tmp_out, model, base)
+    stem_name = "vocals" if stem not in ["drums","bass","other"] else stem
+    stem_path = os.path.join(out_dir, f"{stem_name}.wav")
+    if not os.path.exists(stem_path):
+        raise FileNotFoundError(f"Demucs stem not found: {stem_path}")
+    return stem_path
+
+class RVCConverter:
+    def __init__(self):
+        self.paths = {
+            "webui_cli": "/rvc/infer_cli.py",
+            "mangio": "/rvc/inference.py",
+        }
+
+    def _webui_call(self, in_path, out_path, **kw):
+        args = ["python", self.paths["webui_cli"],
+                "--input", in_path,
+                "--output", out_path]
+        voice = kw.get("rvc_model")
+        if voice:
+            mdir = os.path.join("/models", voice)
+            mp = os.path.join(mdir, "model.pth")
+            ix = os.path.join(mdir, "added.index")
+            if os.path.exists(mp):
+                args += ["--model", mp]
+            if os.path.exists(ix):
+                args += ["--index", ix]
+        if kw.get("pitch_change_all") is not None:
+            args += ["--transpose", str(kw["pitch_change_all"])]
+        if kw.get("index_rate") is not None:
+            args += ["--index-rate", str(kw["index_rate"])]
+        if kw.get("filter_radius") is not None:
+            args += ["--filter-radius", str(kw["filter_radius"])]
+        if kw.get("rms_mix_rate") is not None:
+            args += ["--rms-mix-rate", str(kw["rms_mix_rate"])]
+        if kw.get("pitch_detection_algorithm"):
+            args += ["--f0-method", str(kw["pitch_detection_algorithm"])]
+        return args
+
+    def _mangio_call(self, in_path, out_path, **kw):
+        args = ["python", self.paths["mangio"],
+                "--input_path", in_path,
+                "--output_path", out_path]
+        voice = kw.get("rvc_model")
+        if voice:
+            mdir = os.path.join("/models", voice)
+            mp = os.path.join(mdir, "model.pth")
+            ix = os.path.join(mdir, "added.index")
+            if os.path.exists(mp):
+                args += ["--pth_path", mp]
+            if os.path.exists(ix):
+                args += ["--index_path", ix]
+        if kw.get("pitch_change_all") is not None:
+            args += ["--transpose", str(kw["pitch_change_all"])]
+        if kw.get("index_rate") is not None:
+            args += ["--index_rate", str(kw["index_rate"])]
+        if kw.get("filter_radius") is not None:
+            args += ["--filter_radius", str(kw["filter_radius"])]
+        if kw.get("rms_mix_rate") is not None:
+            args += ["--rms_mix_rate", str(kw["rms_mix_rate"])]
+        if kw.get("pitch_detection_algorithm"):
+            args += ["--f0_method", str(kw["pitch_detection_algorithm"])]
+        return args
+
+    def convert(self, **kw):
+        in_path = kw["in_path"]
+        output_format = kw.get("output_format","wav")
+        normalize = kw.get("normalize", True)
+        target_db = kw.get("target_db", -0.1)
+
+        work_input = in_path
+        if kw.get("separate"):
+            work_input = demucs_separate(in_path, stem=kw.get("stem","vocals"))
+
+        tmp_dir = tempfile.mkdtemp()
+        out_path = os.path.join(tmp_dir, "rvc_out." + ("wav" if output_format=="wav" else "mp3"))
+
+        if os.path.exists(self.paths["webui_cli"]):
+            cmd = self._webui_call(work_input, out_path, **kw)
+        elif os.path.exists(self.paths["mangio"]):
+            cmd = self._mangio_call(work_input, out_path, **kw)
+        else:
+            raise RuntimeError("No known RVC CLI found in /rvc (expected infer_cli.py or inference.py)")
+
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if proc.returncode != 0 or not os.path.exists(out_path):
+            raise RuntimeError(f"RVC CLI failed: {proc.stderr or proc.stdout}")
+
+        if normalize and out_path.endswith(".wav"):
+            try:
+                peak_normalize_wav(out_path, target_db)
+            except Exception:
+                pass
+        return out_path
