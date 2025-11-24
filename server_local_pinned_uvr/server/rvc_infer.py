@@ -23,19 +23,41 @@ def peak_normalize_wav(path, target_db=-0.1):
         wf.setframerate(framerate)
         wf.writeframes(samples.tobytes())
 
-def demucs_separate(in_path, stem='vocals'):
-    """Run Demucs (htdemucs) and return path to requested stem wav."""
+def demucs_run(in_path, model=None, shifts=None, segment=None):
+    """Run Demucs once and return the output directory containing all stems."""
     tmp_out = tempfile.mkdtemp()
-    model = os.environ.get("DEMUCS_MODEL", "htdemucs")
-    cmd = ["demucs", "-n", model, "-o", tmp_out, in_path]
+    model_name = model or os.environ.get("DEMUCS_MODEL", "htdemucs")
+    cmd = ["demucs", "-n", model_name, "-o", tmp_out, in_path]
+    if shifts is not None:
+        try:
+            s = int(shifts)
+            if s > 0:
+                cmd += ["--shifts", str(s)]
+        except (TypeError, ValueError):
+            pass
+    if segment is not None:
+        try:
+            seg = float(segment)
+            if seg > 0:
+                cmd += ["--segment", str(seg)]
+        except (TypeError, ValueError):
+            pass
     subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
     base = os.path.splitext(os.path.basename(in_path))[0]
-    out_dir = os.path.join(tmp_out, model, base)
+    out_dir = os.path.join(tmp_out, model_name, base)
+    if not os.path.isdir(out_dir):
+        raise FileNotFoundError(f"Demucs output directory missing: {out_dir}")
+    return out_dir
+
+
+def demucs_separate(in_path, stem='vocals', model=None, shifts=None, segment=None):
+    """Run Demucs (htdemucs) and return path to requested stem wav."""
+    out_dir = demucs_run(in_path, model=model, shifts=shifts, segment=segment)
     stem_name = "vocals" if stem not in ["drums","bass","other"] else stem
     stem_path = os.path.join(out_dir, f"{stem_name}.wav")
     if not os.path.exists(stem_path):
         raise FileNotFoundError(f"Demucs stem not found: {stem_path}")
-    return stem_path
+    return stem_path, out_dir
 
 class RVCConverter:
     def __init__(self):
@@ -102,7 +124,7 @@ class RVCConverter:
 
         work_input = in_path
         if kw.get("separate"):
-            work_input = demucs_separate(in_path, stem=kw.get("stem","vocals"))
+            work_input, _ = demucs_separate(in_path, stem=kw.get("stem","vocals"), model=kw.get("demucs_model"))
 
         tmp_dir = tempfile.mkdtemp()
         out_path = os.path.join(tmp_dir, "rvc_out." + ("wav" if output_format=="wav" else "mp3"))
@@ -124,3 +146,12 @@ class RVCConverter:
             except Exception:
                 pass
         return out_path
+
+    def uvr(self, in_path, model=None, shifts=None, segment=None):
+        """Separate all stems with Demucs and return a zip archive path."""
+        out_dir = demucs_run(in_path, model=model, shifts=shifts, segment=segment)
+        base = tempfile.mktemp()
+        archive_path = shutil.make_archive(base, 'zip', out_dir)
+        if not os.path.exists(archive_path):
+            raise FileNotFoundError("Failed to create UVR zip archive")
+        return archive_path

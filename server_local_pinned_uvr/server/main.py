@@ -23,6 +23,7 @@ async def convert_audio(
     # Pre-process separation
     separate: Optional[bool] = Form(False),
     stem: Optional[str] = Form("vocals"),  # 'vocals' or 'other'
+    demucs_model: Optional[str] = Form(None),
     # Post-process
     normalize: Optional[bool] = Form(True),
     target_db: Optional[float] = Form(-0.1)
@@ -44,10 +45,31 @@ async def convert_audio(
             pitch_detection_algorithm=pitch_detection_algorithm,
             separate=separate,
             stem=stem,
+            demucs_model=demucs_model,
             normalize=normalize,
             target_db=target_db
         )
         return FileResponse(out_path, filename=os.path.basename(out_path), media_type="audio/wav" if out_path.endswith(".wav") else "audio/mpeg")
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/uvr")
+async def uvr_audio(
+    file: UploadFile = File(...),
+    model: Optional[str] = Form(None),
+    shifts: Optional[int] = Form(None),
+    segment: Optional[float] = Form(None)
+):
+    """Expose a Demucs/UVR-style separation endpoint that returns all stems as a zip."""
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1] or ".wav") as tmp_in:
+            data = await file.read()
+            tmp_in.write(data)
+            in_path = tmp_in.name
+
+        zip_path = converter.uvr(in_path=in_path, model=model, shifts=shifts, segment=segment)
+        return FileResponse(zip_path, filename=os.path.basename(zip_path), media_type="application/zip")
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

@@ -9,15 +9,25 @@ const os = require('os');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 const Replicate = require('replicate');
+const AdmZip = require('adm-zip');
 
 // Optional client-side normalization for Replicate WAV (same as before)
 const audioDecode = require('audio-decode');
 const WavEncoder = require('wav-encoder');
 
+// Optional local Stable Audio transform endpoint: trigger with the `stable_process` message
+// to send the most recent source audio plus optional prompt.
+
 let state = {
   backend: 'Replicate',           // 'Replicate' or 'Local'
+  mode: 'voice',                  // 'voice' (RVC) or 'stable'
   apikey: null,                   // Replicate
   server: 'http://127.0.0.1:8000',// Local
+  stability_server: 'http://127.0.0.1:7860',
+  stable_prompt: '',
+  uvr_model: 'htdemucs',
+  uvr_shifts: 1,
+  uvr_segment: 0,
   sourcePath: null,
 
   // Shared params
@@ -49,9 +59,32 @@ function errorOut(e){ Max.outlet(['error', e]); }
 
 // Handlers
 Max.addHandler('backend', v => { state.backend = String(v || 'Replicate'); status(`Backend: ${state.backend}`); });
+Max.addHandler('mode', v => {
+  const val = String(v || 'voice').toLowerCase();
+  if (val.includes('uvr')) {
+    state.mode = 'uvr';
+  } else if (val.startsWith('stable')) {
+    state.mode = 'stable';
+  } else {
+    state.mode = 'voice';
+  }
+  status(`Mode: ${state.mode}`);
+});
 Max.addHandler('apikey', v => { state.apikey = String(v || '').trim(); status('API key set'); });
 Max.addHandler('server', v => { state.server = String(v || '').trim(); status(`Server: ${state.server}`); });
 Max.addHandler('source', v => { state.sourcePath = String(v || '').trim(); status(`Source: ${state.sourcePath}`); });
+Max.addHandler('stability_server', v => {
+  state.stability_server = String(v || '').trim() || 'http://127.0.0.1:7860';
+  status(`Stable Audio server: ${state.stability_server}`);
+});
+Max.addHandler('stable_prompt', v => {
+  state.stable_prompt = (v==null?'':String(v)).trim();
+  status(`stable_prompt=${state.stable_prompt}`);
+});
+Max.addHandler('uvr_model', v => {
+  state.uvr_model = (v==null?'':String(v)).trim() || 'htdemucs';
+  status(`uvr_model=${state.uvr_model}`);
+});
 
 ['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem'].forEach(k=>{
   Max.addHandler(k, v => { state[k] = (v==null?'':String(v)).trim(); status(`${k}=${state[k]}`); });
@@ -59,7 +92,7 @@ Max.addHandler('source', v => { state.sourcePath = String(v || '').trim(); statu
 
 ['index_rate','filter_radius','rms_mix_rate','crepe_hop_length','protect',
  'main_vocals_volume_change','backup_vocals_volume_change','instrumental_volume_change',
- 'pitch_change_all','target_db']
+ 'pitch_change_all','target_db','uvr_shifts','uvr_segment']
 .forEach(k=>{
   Max.addHandler(k, v => { 
     const num = Number(v);
@@ -74,16 +107,47 @@ Max.addHandler('normalize', v => { state.normalize = !!Number(v) || v === true; 
 Max.addHandler('process', async () => {
   try {
     if (!state.sourcePath) return errorOut('No source file');
-    if (state.backend.toLowerCase().startsWith('rep')) {
-      if (!state.apikey) return errorOut('Missing Replicate API key');
-      await runReplicate();
+    const mode = (state.mode || 'voice').toLowerCase();
+    if (mode.startsWith('stable')) {
+      await runStableAudio();
+    } else if (mode.startsWith('uvr')) {
+      await runUvr();
     } else {
-      await runLocal();
+      const backend = state.backend.toLowerCase();
+      if (backend.startsWith('rep')) {
+        if (!state.apikey) return errorOut('Missing Replicate API key');
+        await runReplicate();
+      } else {
+        await runLocal();
+      }
     }
   } catch (err) {
     errorOut(err?.message || String(err));
   }
 });
+
+Max.addHandler('stable_process', async () => {
+  try {
+    if (!state.sourcePath) return errorOut('No source file');
+    await runStableAudio();
+  } catch (err) {
+    errorOut(err?.message || String(err));
+  }
+});
+
+async function listAudioFiles(dir){
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const results = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...await listAudioFiles(full));
+    } else if (/\.(wav|mp3|flac|ogg)$/i.test(entry.name)) {
+      results.push(full);
+    }
+  }
+  return results;
+}
 
 async function runReplicate() {
   const buf = await fs.readFile(state.sourcePath);
@@ -145,6 +209,7 @@ async function runLocal() {
                'main_vocals_volume_change','backup_vocals_volume_change','instrumental_volume_change',
                'pitch_change_all','normalize','target_db','separate','stem'];
   for (const k of map) form.append(k, String(state[k]));
+  if (state.uvr_model) form.append('demucs_model', state.uvr_model);
   status(`Uploading to ${state.server}…`);
   const res = await fetch(`${state.server}/convert`, { method: 'POST', body: form });
   if (!res.ok) {
@@ -159,6 +224,84 @@ async function runLocal() {
   const file = await fs.open(outPath, 'w');
   await res.body.pipeTo(file.createWriteStream());
   await file.close();
+  progress(100);
+  status('Done');
+  Max.outlet(['done', outPath]);
+}
+
+async function runUvr() {
+  const form = new FormData();
+  form.append('file', await fs.readFile(state.sourcePath), { filename: path.basename(state.sourcePath) });
+  if (state.uvr_model) form.append('model', state.uvr_model);
+  if (Number.isFinite(state.uvr_shifts)) form.append('shifts', String(state.uvr_shifts));
+  if (Number.isFinite(state.uvr_segment) && state.uvr_segment > 0) form.append('segment', String(state.uvr_segment));
+  status(`Uploading to UVR at ${state.server}…`);
+  const res = await fetch(`${state.server}/uvr`, { method: 'POST', body: form });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`UVR server error: ${res.status} ${txt}`);
+  }
+
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'uvr-'));
+  const zipPath = path.join(tmpDir, 'uvr.zip');
+  const zipFile = await fs.open(zipPath, 'w');
+  await res.body.pipeTo(zipFile.createWriteStream());
+  await zipFile.close();
+
+  const outDir = path.join(os.homedir(), 'Music', 'RVC', `uvr_${Date.now()}`);
+  await fs.mkdir(outDir, { recursive: true });
+  const zip = new AdmZip(zipPath);
+  zip.extractAllTo(outDir, true);
+
+  const stems = await listAudioFiles(outDir);
+  if (!stems.length) throw new Error('UVR zip contained no audio stems');
+  let i = 0;
+  for (const stem of stems) {
+    progress(Math.min(99, Math.round((++i / stems.length) * 100)));
+    Max.outlet(['done', stem]);
+  }
+  progress(100);
+  status(`UVR stems ready in ${outDir}`);
+}
+
+async function runStableAudio() {
+  const buf = await fs.readFile(state.sourcePath);
+  const form = new FormData();
+  form.append('input_audio', buf, { filename: path.basename(state.sourcePath) });
+  if (state.stable_prompt) form.append('prompt', state.stable_prompt);
+  form.append('output_format', state.output_format || 'wav');
+
+  const base = (state.stability_server || 'http://127.0.0.1:7860').replace(/\/+$/, '');
+  status(`Uploading to ${base}…`);
+  const res = await fetch(`${base}/v2beta/stable-audio/transform`, {
+    method: 'POST',
+    headers: { Accept: 'audio/*' },
+    body: form
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Stable Audio error: ${res.status} ${txt}`);
+  }
+
+  const dir = path.join(os.homedir(), 'Music', 'RVC');
+  await fs.mkdir(dir, { recursive: true });
+  const ct = res.headers.get('content-type') || '';
+  const ext = ct.includes('mpeg') ? 'mp3' : (ct.includes('ogg') ? 'ogg' : 'wav');
+  const outPath = path.join(dir, `rvc_${Date.now()}.${ext}`);
+  const file = await fs.open(outPath, 'w');
+  await res.body.pipeTo(file.createWriteStream());
+  await file.close();
+
+  if (state.normalize && ext === 'wav') {
+    status('Normalizing audio…');
+    try {
+      await normalizeWav(outPath, state.target_db);
+      status(`Normalized to ${state.target_db} dBFS`);
+    } catch (e) {
+      errorOut('Normalization failed: ' + (e?.message || e));
+    }
+  }
+
   progress(100);
   status('Done');
   Max.outlet(['done', outPath]);
