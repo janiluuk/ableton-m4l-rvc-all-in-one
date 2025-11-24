@@ -2,7 +2,7 @@
 RVC Unified Max for Live Device
 ===============================
 
-- One device with a **Backend** toggle: **Replicate** or **Local**.
+- One device with a **Backend** toggle: **Replicate**, **Local**, or **StableAudio**.
 - Front-panel **Pitch Shift (semitones)** knob.
 - Session/Arrangement auto-drop, new track drop, takes history, naming & color.
 - WAV normalization to −0.1 dBFS for Replicate backend.
@@ -14,6 +14,9 @@ Setup:
 3) Choose backend:
    - Replicate: paste API token in the device (top-left).
    - Local: set `server http://YOUR_SERVER:8000` in the server field.
+   - StableAudio: set `backend StableAudio`, paste your Stability API key with `stability_apikey <TOKEN>`,
+     optionally point `stability_server` to a self-hosted instance, and set `stable_prompt` if your
+     endpoint requires a prompt alongside the input audio.
 
 Usage:
 - Set `rvc_model` or `model_url` (Replicate) / `rvc_model` (Local; matches `/models/<name>` on server).

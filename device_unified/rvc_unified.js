@@ -15,9 +15,12 @@ const audioDecode = require('audio-decode');
 const WavEncoder = require('wav-encoder');
 
 let state = {
-  backend: 'Replicate',           // 'Replicate' or 'Local'
+  backend: 'Replicate',           // 'Replicate', 'Local', or 'StableAudio'
   apikey: null,                   // Replicate
   server: 'http://127.0.0.1:8000',// Local
+  stability_apikey: null,         // Stable Audio API key
+  stability_server: 'https://api.stability.ai',
+  stable_prompt: '',
   sourcePath: null,
 
   // Shared params
@@ -52,6 +55,12 @@ Max.addHandler('backend', v => { state.backend = String(v || 'Replicate'); statu
 Max.addHandler('apikey', v => { state.apikey = String(v || '').trim(); status('API key set'); });
 Max.addHandler('server', v => { state.server = String(v || '').trim(); status(`Server: ${state.server}`); });
 Max.addHandler('source', v => { state.sourcePath = String(v || '').trim(); status(`Source: ${state.sourcePath}`); });
+Max.addHandler('stability_apikey', v => { state.stability_apikey = String(v || '').trim(); status('Stable Audio API key set'); });
+Max.addHandler('stability_server', v => {
+  state.stability_server = String(v || '').trim() || 'https://api.stability.ai';
+  status(`Stable Audio server: ${state.stability_server}`);
+});
+Max.addHandler('stable_prompt', v => { state.stable_prompt = (v==null?'':String(v)).trim(); status(`stable_prompt=${state.stable_prompt}`); });
 
 ['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem'].forEach(k=>{
   Max.addHandler(k, v => { state[k] = (v==null?'':String(v)).trim(); status(`${k}=${state[k]}`); });
@@ -74,9 +83,13 @@ Max.addHandler('normalize', v => { state.normalize = !!Number(v) || v === true; 
 Max.addHandler('process', async () => {
   try {
     if (!state.sourcePath) return errorOut('No source file');
-    if (state.backend.toLowerCase().startsWith('rep')) {
+    const backend = state.backend.toLowerCase();
+    if (backend.startsWith('rep')) {
       if (!state.apikey) return errorOut('Missing Replicate API key');
       await runReplicate();
+    } else if (backend.startsWith('stab')) {
+      if (!state.stability_apikey) return errorOut('Missing Stable Audio API key');
+      await runStableAudio();
     } else {
       await runLocal();
     }
@@ -159,6 +172,49 @@ async function runLocal() {
   const file = await fs.open(outPath, 'w');
   await res.body.pipeTo(file.createWriteStream());
   await file.close();
+  progress(100);
+  status('Done');
+  Max.outlet(['done', outPath]);
+}
+
+async function runStableAudio() {
+  const buf = await fs.readFile(state.sourcePath);
+  const form = new FormData();
+  form.append('input_audio', buf, { filename: path.basename(state.sourcePath) });
+  if (state.stable_prompt) form.append('prompt', state.stable_prompt);
+  form.append('output_format', state.output_format || 'wav');
+
+  const base = (state.stability_server || 'https://api.stability.ai').replace(/\/+$/, '');
+  status(`Uploading to ${base}…`);
+  const res = await fetch(`${base}/v2beta/stable-audio/transform`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${state.stability_apikey}`, Accept: 'audio/*' },
+    body: form
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Stable Audio error: ${res.status} ${txt}`);
+  }
+
+  const dir = path.join(os.homedir(), 'Music', 'RVC');
+  await fs.mkdir(dir, { recursive: true });
+  const ct = res.headers.get('content-type') || '';
+  const ext = ct.includes('mpeg') ? 'mp3' : (ct.includes('ogg') ? 'ogg' : 'wav');
+  const outPath = path.join(dir, `rvc_${Date.now()}.${ext}`);
+  const file = await fs.open(outPath, 'w');
+  await res.body.pipeTo(file.createWriteStream());
+  await file.close();
+
+  if (state.normalize && ext === 'wav') {
+    status('Normalizing audio…');
+    try {
+      await normalizeWav(outPath, state.target_db);
+      status(`Normalized to ${state.target_db} dBFS`);
+    } catch (e) {
+      errorOut('Normalization failed: ' + (e?.message || e));
+    }
+  }
+
   progress(100);
   status('Done');
   Max.outlet(['done', outPath]);
