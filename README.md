@@ -11,10 +11,10 @@ Under the hood you still have a single Max for Live device that can switch betwe
 
 Folders:
 - device_unified/ → The Max device (`RVC_Unified_Device.maxpat`) + unified Node script + npm deps.
-- server_local_pinned_uvr/ → FastAPI + Docker server (WebUI or Mangio fork; commit pinning; Demucs option).
+- server/ → FastAPI + Docker server (WebUI or Mangio fork; commit pinning; Demucs option).
 
 Quick Start — Local GPU
-1) `cd server_local_pinned_uvr`
+1) `cd server`
 2) Build & run (WebUI latest):
    ```bash
    docker compose build      --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git      --build-arg RVC_COMMIT=
@@ -22,8 +22,8 @@ Quick Start — Local GPU
    ```
 3) Put models:
    ```
-   server_local_pinned_uvr/models/<VOICE>/model.pth
-   server_local_pinned_uvr/models/<VOICE>/added.index   # optional
+   server/models/<VOICE>/model.pth
+   server/models/<VOICE>/added.index   # optional
    ```
 4) In the Live device:
    - Backend: **Local**
@@ -51,8 +51,8 @@ Extra features
 - WAV normalization to −0.1 dBFS (Replicate client; Local server normalizes itself).
 
 Notes
-- You can pin a specific RVC fork/commit via Docker build args in `server_local_pinned_uvr`.
-- If your fork uses different CLI flags, edit `server/rvc_infer.py` (centralized mapping).
+- You can pin a specific RVC fork/commit via Docker build args in `server`.
+- If your fork uses different CLI flags, edit `server/server/rvc_infer.py` (centralized mapping).
 
 Docker — Local Stable Audio transform (optional)
 ------------------------------------------------
@@ -72,11 +72,11 @@ and (optionally) a `stable_prompt`, and press **Process**.
 
 Docker — Local RVC server + weights.gg models
 ---------------------------------------------
-`server_local_pinned_uvr/` already ships with a `docker-compose.yml` that builds and runs the
+`server/` already ships with a `docker-compose.yml` that builds and runs the
 FastAPI RVC server (and now exposes a UVR `/uvr` endpoint). To run it and load community models from weights.gg:
 
 ```bash
-cd server_local_pinned_uvr
+cd server
 docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
   --build-arg RVC_COMMIT=
 docker compose up -d
@@ -92,11 +92,11 @@ to use that model.
 
 Docker — UVR/Ultimate Vocal Remover API
 --------------------------------------
-The same `server_local_pinned_uvr` container also exposes `/uvr`, which runs Demucs/UVR locally and returns a zip with all stems.
+The same `server` container also exposes `/uvr`, which runs Demucs/UVR locally and returns a zip with all stems.
 Launch it with Docker and point the device to it when you select **Mode → UVR**:
 
 ```bash
-cd server_local_pinned_uvr
+cd server
 docker compose build
 docker compose up -d
 # Optional: pick a specific Demucs model (e.g., htdemucs_mmi)
@@ -120,7 +120,7 @@ docker compose up -d
 ```
 
 This will:
-- Build and run the pinned RVC FastAPI server on `http://localhost:8000` with `server_local_pinned_uvr/models`
+- Build and run the pinned RVC FastAPI server on `http://localhost:8000` with `server/models`
   mounted for your checkpoints.
 - Run `ghcr.io/stability-ai/stable-audio-tools:latest` on `http://localhost:7860` with a persisted cache under
   `./stable-audio-cache`.

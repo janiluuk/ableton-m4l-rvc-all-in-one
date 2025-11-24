@@ -2,7 +2,7 @@ version: "3.8"
 services:
   rvc:
     build:
-      context: ./server_local_pinned_uvr
+      context: ./server
       args:
         RVC_REPO: https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git
         RVC_COMMIT: ""
@@ -23,7 +23,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./server_local_pinned_uvr/models:/models
+      - ./server/models:/models
       # Optionally mount your own fork to override /rvc:
       # - /path/to/your/fork:/rvc
 

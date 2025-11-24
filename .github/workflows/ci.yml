@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install server dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r server/server/requirements.txt
+
+      - name: Compile server code
+        run: python -m compileall server/server
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install device dependencies
+        working-directory: device_unified
+        run: npm install --ignore-scripts
+
+      - name: Syntax check device script
+        working-directory: device_unified
+        run: node --check rvc_unified.js
