@@ -1,0 +1,48 @@
+version: "3.8"
+services:
+  rvc:
+    build:
+      context: ./server_local_pinned_uvr
+      args:
+        RVC_REPO: https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git
+        RVC_COMMIT: ""
+    image: rvc-local-pinned:latest
+    container_name: rvc-local-pinned
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - DEMUCS_MODEL=htdemucs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server_local_pinned_uvr/models:/models
+      # Optionally mount your own fork to override /rvc:
+      # - /path/to/your/fork:/rvc
+
+  stable-audio:
+    image: ghcr.io/stability-ai/stable-audio-tools:latest
+    container_name: stable-audio-local
+    command: stable-audio-api --host 0.0.0.0 --port 7860
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./stable-audio-cache:/root/.cache/stabilityai
