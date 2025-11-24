@@ -274,7 +274,7 @@
         "box": {
           "id": "btn",
           "maxclass": "textbutton",
-          "text": "Process with RVC",
+          "text": "Process (per mode)",
           "patching_rect": [
             20.0,
             340.0,
@@ -1515,6 +1515,239 @@
             22.0
           ]
         }
+      },
+      {
+        "box": {
+          "id": "stability_label",
+          "maxclass": "comment",
+          "text": "Stable Audio server URL (http://host:7860)",
+          "patching_rect": [
+            20.0,
+            140.0,
+            280.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "stability_url",
+          "maxclass": "textedit",
+          "patching_rect": [
+            20.0,
+            160.0,
+            260.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "stability_pre",
+          "maxclass": "newobj",
+          "text": "prepend stability_server",
+          "patching_rect": [
+            290.0,
+            160.0,
+            170.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "stable_prompt_label",
+          "maxclass": "comment",
+          "text": "Stable prompt (optional for Stable Audio)",
+          "patching_rect": [
+            20.0,
+            280.0,
+            260.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "stable_prompt",
+          "maxclass": "textedit",
+          "patching_rect": [
+            20.0,
+            300.0,
+            330.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "stable_prompt_pre",
+          "maxclass": "newobj",
+          "text": "prepend stable_prompt",
+          "patching_rect": [
+            360.0,
+            300.0,
+            160.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "process_mode_label",
+          "maxclass": "comment",
+          "text": "Processing Mode (Voice/RVC, UVR, Stable Audio)",
+          "patching_rect": [
+            360.0,
+            -5.0,
+            250.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "process_mode_menu",
+          "maxclass": "umenu",
+          "items": [
+            "Voice (RVC)",
+            "UVR (all stems)",
+            "Stable Audio"
+          ],
+          "patching_rect": [
+            360.0,
+            15.0,
+            140.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "process_mode_pre",
+          "maxclass": "newobj",
+          "text": "prepend mode",
+          "patching_rect": [
+            510.0,
+            15.0,
+            120.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_model_label",
+          "maxclass": "comment",
+          "text": "UVR model (Demucs name)",
+          "patching_rect": [
+            360.0,
+            45.0,
+            200.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_model",
+          "maxclass": "textedit",
+          "patching_rect": [
+            360.0,
+            65.0,
+            180.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_model_pre",
+          "maxclass": "newobj",
+          "text": "prepend uvr_model",
+          "patching_rect": [
+            550.0,
+            65.0,
+            130.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_shifts_label",
+          "maxclass": "comment",
+          "text": "UVR shifts (ensembles, quality vs speed)",
+          "patching_rect": [
+            360.0,
+            95.0,
+            280.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_shifts_num",
+          "maxclass": "number",
+          "patching_rect": [
+            360.0,
+            115.0,
+            70.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_shifts_pre",
+          "maxclass": "newobj",
+          "text": "prepend uvr_shifts",
+          "patching_rect": [
+            440.0,
+            115.0,
+            140.0,
+            22.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_segment_label",
+          "maxclass": "comment",
+          "text": "UVR segment (seconds, 0 = default)",
+          "patching_rect": [
+            360.0,
+            145.0,
+            260.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_segment_num",
+          "maxclass": "flonum",
+          "patching_rect": [
+            360.0,
+            165.0,
+            70.0,
+            20.0
+          ]
+        }
+      },
+      {
+        "box": {
+          "id": "uvr_segment_pre",
+          "maxclass": "newobj",
+          "text": "prepend uvr_segment",
+          "patching_rect": [
+            440.0,
+            165.0,
+            150.0,
+            22.0
+          ]
+        }
       }
     ],
     "lines": [
@@ -2746,6 +2979,150 @@
         "patchline": {
           "source": [
             "server_pre",
+            0
+          ],
+          "destination": [
+            "node",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "stability_url",
+            0
+          ],
+          "destination": [
+            "stability_pre",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "stability_pre",
+            0
+          ],
+          "destination": [
+            "node",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "stable_prompt",
+            0
+          ],
+          "destination": [
+            "stable_prompt_pre",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "stable_prompt_pre",
+            0
+          ],
+          "destination": [
+            "node",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "process_mode_menu",
+            0
+          ],
+          "destination": [
+            "process_mode_pre",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "process_mode_pre",
+            0
+          ],
+          "destination": [
+            "node",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "uvr_model",
+            0
+          ],
+          "destination": [
+            "uvr_model_pre",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "uvr_model_pre",
+            0
+          ],
+          "destination": [
+            "node",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "uvr_shifts_num",
+            0
+          ],
+          "destination": [
+            "uvr_shifts_pre",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "uvr_shifts_pre",
+            0
+          ],
+          "destination": [
+            "node",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "uvr_segment_num",
+            0
+          ],
+          "destination": [
+            "uvr_segment_pre",
+            0
+          ]
+        }
+      },
+      {
+        "patchline": {
+          "source": [
+            "uvr_segment_pre",
             0
           ],
           "destination": [
