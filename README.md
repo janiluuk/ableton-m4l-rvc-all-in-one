@@ -1,79 +1,68 @@
-
 Ableton Max4Live RVC All-In-One Stack
 =======================================
 
-This bundle lets you drop in a user-provided audio file and choose how to process it:
+This project bundles a single Max for Live device that can:
 
-- **Ultimate Vocal Remover (UVR5)** via the bundled local API: switch the Mode menu to **UVR (all stems)** and the device will POST your file to `/uvr` on the local server, unzip every returned stem, and drop each one as its own Live track. You can forward the Demucs model name plus **UVR shifts** (ensembles for quality) and **segment length** (seconds, to control memory/speed) from the device UI so the API receives every vital separation parameter.
-- **Stable Audio** mode: posts the dropped file plus your prompt to a Stable Audio–compatible API (local by default) and brings the generated audio back as a new track.
+- Separate stems with **Ultimate Vocal Remover (UVR5)**.
+- Convert or transform audio with **Stable Audio** or **RVC voice conversion**.
 
-Under the hood you still have a single Max for Live device that can switch between **Replicate (cloud)** and **Local GPU** backends, plus a **Dockerized local server** (fork/commit pinning, optional Demucs separation, peak normalization).
+You can run everything locally with Docker or use the Replicate cloud backend. The steps below focus on the simplest, “just make it work” path.
 
-Folders:
-- device_unified/ → The Max device (`RVC_Unified_Device.maxpat`) + unified Node script + npm deps.
-- server_local_pinned_uvr/ → FastAPI + Docker server (WebUI or Mangio fork; commit pinning; Demucs option).
+What’s in the repo
+- `device_unified/` → the Max device (`RVC_Unified_Device.maxpat`), its Node script, and npm deps.
+- `server_local_pinned_uvr/` → the FastAPI + Docker server for local processing.
 
-Quick Start — Local GPU
-1) `cd server_local_pinned_uvr`
-2) Build & run (WebUI latest):
+Fast start: local GPU (recommended)
+-----------------------------------
+1. Install Docker with GPU support (NVIDIA drivers + Docker Engine).
+2. Open a terminal and run:
    ```bash
-   docker compose build      --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git      --build-arg RVC_COMMIT=
+   cd server_local_pinned_uvr
+   docker compose build      --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git --build-arg RVC_COMMIT=
    docker compose up -d
    ```
-3) Put models:
-   ```
-   server_local_pinned_uvr/models/<VOICE>/model.pth
-   server_local_pinned_uvr/models/<VOICE>/added.index   # optional
-   ```
-4) In the Live device:
+3. Put your model files in `server_local_pinned_uvr/models/<VOICE>/`:
+   - `model.pth`
+   - `added.index` (optional)
+4. In Ableton Live, drop the Max device onto a track and set:
    - Backend: **Local**
-   - Server: `http://<server>:8000`
+   - Server: `http://127.0.0.1:8000`
    - `rvc_model <VOICE>`
+5. Drop an audio file on the device and press **Process**.
 
-Quick Start — Replicate
-1) `cd device_unified && npm install`
-2) In the device: Backend **Replicate**, paste your API token.
-3) Use `rvc_model` or `model_url`, set pitch knob, drop a file, click **Process**.
+Fast start: Replicate (cloud)
+-----------------------------
+1. Install the Max device’s npm deps once:
+   ```bash
+   cd device_unified
+   npm install
+   ```
+2. In the device UI choose **Backend → Replicate**, paste your API token, pick a model (`rvc_model` or `model_url`), drop a file, and hit **Process**.
 
-Processing modes with your audio file
-- Drop an audio clip onto the device.
-- To run **Ultimate Vocal Remover (all stems)**, set **Backend → Local**, set `server http://<server>:8000`, and pick **Mode → UVR**.
-  The device POSTs your file plus `uvr_model` (Demucs name), optional `uvr_shifts` (number of ensembles), and `uvr_segment` (segment length in seconds; 0 = Demucs default) to `/uvr`, saves the returned zip of stems locally, and drops
-  every stem as a new track.
-- To run **Stable Audio** instead of UVR/voice conversion, switch **Mode → Stable Audio**. The device POSTs the dropped file as
-  `input_audio`, your `stable_prompt` (if set), and `output_format` to `/v2beta/stable-audio/transform` so the API has every
-  required field. The returned audio is written to disk and dropped back into Live as a new track.
+Pick a processing mode
+- **UVR (all stems)**: set **Backend → Local**, set `server http://127.0.0.1:8000`, and choose **Mode → UVR**. The device sends your file to `/uvr`, downloads a zip of stems, and drops each stem on its own track. You can pass a Demucs model name with `uvr_model`, add ensembles with `uvr_shifts`, or tweak memory use with `uvr_segment` (seconds).
+- **Stable Audio**: choose **Mode → Stable Audio**. The device posts the dropped file plus your `stable_prompt` (optional) to `/v2beta/stable-audio/transform` and returns the generated audio as a new track.
+- **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set.
 
-Extra features
-- Session/Arrangement auto-drop, New Track button.
-- Takes history + re-drop.
-- Clip naming + color.
-- WAV normalization to −0.1 dBFS (Replicate client; Local server normalizes itself).
+Extra quality-of-life features
+- Auto-drop to Session/Arrangement, new track button, take history and re-drop, clip naming/color, and built-in WAV normalization.
 
-Notes
-- You can pin a specific RVC fork/commit via Docker build args in `server_local_pinned_uvr`.
-- If your fork uses different CLI flags, edit `server/rvc_infer.py` (centralized mapping).
-
-Docker — Local Stable Audio transform (optional)
-------------------------------------------------
-The Max device’s **Stable Audio** mode posts your dropped file to a local HTTP endpoint at
-`/v2beta/stable-audio/transform`. You can stand this up with Docker:
+Optional: local Stable Audio in one command
+-------------------------------------------
+If you want to run Stable Audio locally, start the official container (uses GPU if available):
 
 ```bash
-# Uses GPU if available; caches models under ./stable-audio-cache
 docker run --rm -p 7860:7860 --gpus all \
   -v $(pwd)/stable-audio-cache:/root/.cache/stabilityai \
   ghcr.io/stability-ai/stable-audio-tools:latest \
   stable-audio-api --host 0.0.0.0 --port 7860
 ```
 
-Then, in the device, pick **Mode → Stable Audio**, set `stability_server http://127.0.0.1:7860`
-and (optionally) a `stable_prompt`, and press **Process**.
+Then set **Mode → Stable Audio** and `stability_server http://127.0.0.1:7860` in the device.
 
-Docker — Local RVC server + weights.gg models
----------------------------------------------
-`server_local_pinned_uvr/` already ships with a `docker-compose.yml` that builds and runs the
-FastAPI RVC server (and now exposes a UVR `/uvr` endpoint). To run it and load community models from weights.gg:
+Optional: load community RVC models
+-----------------------------------
+To run the included local server and load a weights.gg archive:
 
 ```bash
 cd server_local_pinned_uvr
@@ -81,19 +70,16 @@ docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retriev
   --build-arg RVC_COMMIT=
 docker compose up -d
 
-# Download a weights.gg RVC archive and unpack it into models/<VOICE>/
 unzip ~/Downloads/your_weightsgg_voice.zip -d models/YourVoice
-mv models/YourVoice/*.pth models/YourVoice/model.pth          # ensure the filename matches
-mv models/YourVoice/*.index models/YourVoice/added.index      # optional index
+mv models/YourVoice/*.pth models/YourVoice/model.pth
+mv models/YourVoice/*.index models/YourVoice/added.index   # optional
 ```
 
-In the Max device set **Backend → Local**, `server http://127.0.0.1:8000`, and `rvc_model YourVoice`
-to use that model.
+In the device set **Backend → Local**, `server http://127.0.0.1:8000`, and `rvc_model YourVoice`.
 
-Docker — UVR/Ultimate Vocal Remover API
---------------------------------------
-The same `server_local_pinned_uvr` container also exposes `/uvr`, which runs Demucs/UVR locally and returns a zip with all stems.
-Launch it with Docker and point the device to it when you select **Mode → UVR**:
+Optional: UVR/Ultimate Vocal Remover endpoint
+---------------------------------------------
+The same local server exposes `/uvr` for Demucs/UVR separation. Launch it and point the device to it when **Mode → UVR** is selected:
 
 ```bash
 cd server_local_pinned_uvr
@@ -103,15 +89,11 @@ docker compose up -d
 DEMUCS_MODEL=htdemucs_mmi docker compose up -d
 ```
 
-By default the UVR endpoint listens on port 8000. In the device, set `server http://127.0.0.1:8000` and (optionally)
-`uvr_model htdemucs_mmi`, `uvr_shifts 1` (set higher for more ensembles/quality), or `uvr_segment 6` (seconds, lower to save memory)
-before pressing **Process** in UVR mode.
+Set `server http://127.0.0.1:8000` in the device. Adjust `uvr_model`, `uvr_shifts`, or `uvr_segment` before pressing **Process**.
 
-Docker Compose — RVC server + Stable Audio (both optional)
----------------------------------------------------------
-If you want to boot **both** the local RVC server and an optional local Stable Audio endpoint in one
-go (with NVIDIA GPU resources exposed to both containers), you can use the root-level
-`docker-compose.example.yml` as a starting point:
+Optional: one-compose setup for RVC + Stable Audio
+--------------------------------------------------
+Use the provided example to boot both local services with NVIDIA GPU access:
 
 ```bash
 cp docker-compose.example.yml docker-compose.yml
@@ -119,11 +101,7 @@ docker compose build rvc
 docker compose up -d
 ```
 
-This will:
-- Build and run the pinned RVC FastAPI server on `http://localhost:8000` with `server_local_pinned_uvr/models`
-  mounted for your checkpoints.
-- Run `ghcr.io/stability-ai/stable-audio-tools:latest` on `http://localhost:7860` with a persisted cache under
-  `./stable-audio-cache`.
+- RVC/UVR server runs at `http://localhost:8000` and mounts `server_local_pinned_uvr/models`.
+- Stable Audio runs at `http://localhost:7860` with cache under `./stable-audio-cache`.
 
-Both services request `all` NVIDIA GPUs via Compose `deploy.resources.reservations.devices`. If you only want one of
-the containers, comment the other service out before running `docker compose up -d`.
+Comment out either service in `docker-compose.yml` if you only need one.
