@@ -3039,7 +3039,11 @@
         "patchline": {
           "source": [
             "process_mode_menu",
+<<<<<<< HEAD
             1
+=======
+            0
+>>>>>>> 64618a6 (Clarify README flows and add endpoint checks)
           ],
           "destination": [
             "process_mode_pre",

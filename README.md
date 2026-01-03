@@ -52,7 +52,7 @@ Optional: local Stable Audio in one command
 If you want to run Stable Audio locally, start the official container (uses GPU if available):
 
 ```bash
-docker run --rm -p 7860:7860 --gpus all \
+  docker run --rm -p 7860:7860 --gpus all \
   -v $(pwd)/stable-audio-cache:/root/.cache/stabilityai \
   ghcr.io/stability-ai/stable-audio-tools:latest \
   stable-audio-api --host 0.0.0.0 --port 7860
@@ -65,7 +65,7 @@ Optional: load community RVC models
 To run the included local server and load a weights.gg archive:
 
 ```bash
-cd server_local_pinned_uvr
+cd server
 docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
   --build-arg RVC_COMMIT=
 docker compose up -d
@@ -82,7 +82,7 @@ Optional: UVR/Ultimate Vocal Remover endpoint
 The same local server exposes `/uvr` for Demucs/UVR separation. Launch it and point the device to it when **Mode → UVR** is selected:
 
 ```bash
-cd server_local_pinned_uvr
+cd server
 docker compose build
 docker compose up -d
 # Optional: pick a specific Demucs model (e.g., htdemucs_mmi)
