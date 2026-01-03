@@ -8,6 +8,7 @@ This project bundles a single Max for Live device that can:
 
 You can run everything locally with Docker or use the Replicate cloud backend. The steps below focus on the simplest, “just make it work” path.
 
+<<<<<<< HEAD
 What’s in the repo
 - `device_unified/` → the Max device (`RVC_Unified_Device.maxpat`), its Node script, and npm deps.
 - `server_local_pinned_uvr/` → the FastAPI + Docker server for local processing.
@@ -65,7 +66,7 @@ Optional: load community RVC models
 To run the included local server and load a weights.gg archive:
 
 ```bash
-cd server_local_pinned_uvr
+cd server
 docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
   --build-arg RVC_COMMIT=
 docker compose up -d
@@ -82,7 +83,7 @@ Optional: UVR/Ultimate Vocal Remover endpoint
 The same local server exposes `/uvr` for Demucs/UVR separation. Launch it and point the device to it when **Mode → UVR** is selected:
 
 ```bash
-cd server_local_pinned_uvr
+cd server
 docker compose build
 docker compose up -d
 # Optional: pick a specific Demucs model (e.g., htdemucs_mmi)
