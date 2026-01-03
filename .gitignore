@@ -1,13 +1,15 @@
-# Dependencies
+# Node modules
 node_modules/
 package-lock.json
 
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# Virtual environments
 venv/
 env/
 ENV/
@@ -19,6 +21,11 @@ ENV/
 *.swo
 *~
 
-# OS
+# OS files
 .DS_Store
 Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
