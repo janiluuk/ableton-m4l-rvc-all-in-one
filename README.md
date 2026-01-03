@@ -8,7 +8,6 @@ This project bundles a single Max for Live device that can:
 
 You can run everything locally with Docker or use the Replicate cloud backend. The steps below focus on the simplest, “just make it work” path.
 
-<<<<<<< HEAD
 What’s in the repo
 - `device_unified/` → the Max device (`RVC_Unified_Device.maxpat`), its Node script, and npm deps.
 - `server_local_pinned_uvr/` → the FastAPI + Docker server for local processing.
