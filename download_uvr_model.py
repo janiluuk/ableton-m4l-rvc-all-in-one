@@ -145,7 +145,6 @@ useful for pre-downloading models for offline use or faster startup.
     
     if not args.model:
         parser.error("the following arguments are required: model")
-
     
     # Get cache directory
     if args.cache_dir:
