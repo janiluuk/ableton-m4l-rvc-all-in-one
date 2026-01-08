@@ -210,7 +210,8 @@ class RVCConverter:
         if kw.get("applio_enabled") and separated_vocal_path and kw.get("applio_model"):
             applio_out_path = self._process_with_applio(separated_vocal_path, **kw)
 
-        return out_path, applio_out_path
+        # Always return a tuple (rvc_output, applio_output) where applio_output may be None
+        return (out_path, applio_out_path)
 
     def uvr(self, in_path, model=None, shifts=None, segment=None):
         """Separate all stems with Demucs and return a zip archive path."""

@@ -55,12 +55,8 @@ async def convert_audio(
             target_db=target_db
         )
         
-        # Handle tuple return (main output + optional Applio output)
-        if isinstance(result, tuple):
-            out_path, applio_out_path = result
-        else:
-            out_path = result
-            applio_out_path = None
+        # Result is always a tuple (rvc_output, applio_output)
+        out_path, applio_out_path = result
             
         # If Applio output exists, create a zip with both files
         if applio_out_path:
