@@ -13,7 +13,6 @@ The device has been redesigned to match the BS-3 style interface with:
 #### Main Vocals Panel (Red/Pink) - Y: 15-185
 - **MAIN VOCALS** (title)
 - Volume (dB) control
-- Filter control
 - RMS Mix control
 - Protect control
 
@@ -25,15 +24,15 @@ The device has been redesigned to match the BS-3 style interface with:
 #### Instrumental Panel (Green) - Y: 375-545
 - **INSTRUMENTAL** (title)
 - Volume (dB) control
-- Filter Radius control
 
 ### Right Column (370-950px): Main Processing Controls
 
-#### Top Right Section (Y: 20-150)
+#### Top Right Section (Y: 20-180)
 - Backend selection (Local/Replicate)
 - Processing Mode (Voice/RVC, UVR, Stable Audio)
 - **PITCH/OCTAVE** control (large, prominent - semitones adjustment)
 - Pitch Algorithm selection
+- Filter Radius control (global setting)
 
 #### Middle Right Section (Y: 160-375)
 - Voice Model selection
