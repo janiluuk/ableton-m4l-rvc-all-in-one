@@ -22,11 +22,13 @@ async def convert_audio(
     pitch_detection_algorithm: Optional[str] = Form("rmvpe"),  # or 'crepe'
     # Pre-process separation
     separate: Optional[bool] = Form(False),
+    separator: Optional[str] = Form("demucs"),  # 'demucs' or 'uvr'
     stem: Optional[str] = Form("vocals"),  # 'vocals' or 'other'
     demucs_model: Optional[str] = Form(None),
     # Applio processing
     applio_enabled: Optional[bool] = Form(False),
     applio_model: Optional[str] = Form(None),
+    uvr_model_path: Optional[str] = Form(None),
     # Post-process
     normalize: Optional[bool] = Form(True),
     target_db: Optional[float] = Form(-0.1)
@@ -47,10 +49,12 @@ async def convert_audio(
             rms_mix_rate=rms_mix_rate,
             pitch_detection_algorithm=pitch_detection_algorithm,
             separate=separate,
+            separator=separator,
             stem=stem,
             demucs_model=demucs_model,
             applio_enabled=applio_enabled,
             applio_model=applio_model,
+            uvr_model_path=uvr_model_path,
             normalize=normalize,
             target_db=target_db
         )
@@ -83,7 +87,9 @@ async def uvr_audio(
     file: UploadFile = File(...),
     model: Optional[str] = Form(None),
     shifts: Optional[int] = Form(None),
-    segment: Optional[float] = Form(None)
+    segment: Optional[float] = Form(None),
+    use_uvr: Optional[bool] = Form(False),
+    uvr_model_path: Optional[str] = Form(None)
 ):
     """Expose a Demucs/UVR-style separation endpoint that returns all stems as a zip."""
     try:
@@ -92,7 +98,14 @@ async def uvr_audio(
             tmp_in.write(data)
             in_path = tmp_in.name
 
-        zip_path = converter.uvr(in_path=in_path, model=model, shifts=shifts, segment=segment)
+        zip_path = converter.uvr(
+            in_path=in_path,
+            model=model,
+            shifts=shifts,
+            segment=segment,
+            use_uvr=use_uvr,
+            uvr_model_path=uvr_model_path
+        )
         return FileResponse(zip_path, filename=os.path.basename(zip_path), media_type="application/zip")
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

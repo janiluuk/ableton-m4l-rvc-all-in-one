@@ -29,3 +29,7 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# RVC models (large files, user-specific)
+server/models/*/
+!server/models/.gitkeep
