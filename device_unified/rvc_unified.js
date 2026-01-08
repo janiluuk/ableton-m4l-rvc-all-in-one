@@ -28,6 +28,7 @@ let state = {
   uvr_model: 'htdemucs',
   uvr_shifts: 1,
   uvr_segment: 0,
+  separator: 'demucs',            // 'demucs' or 'uvr' - for separation tool selection
   sourcePath: null,
 
   // Shared params
@@ -86,7 +87,7 @@ Max.addHandler('uvr_model', v => {
   status(`uvr_model=${state.uvr_model}`);
 });
 
-['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem'].forEach(k=>{
+['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem','separator'].forEach(k=>{
   Max.addHandler(k, v => { state[k] = (v==null?'':String(v)).trim(); status(`${k}=${state[k]}`); });
 });
 
@@ -207,9 +208,18 @@ async function runLocal() {
   const map = ['rvc_model','output_format','index_rate','filter_radius','rms_mix_rate',
                'pitch_detection_algorithm','crepe_hop_length','protect',
                'main_vocals_volume_change','backup_vocals_volume_change','instrumental_volume_change',
-               'pitch_change_all','normalize','target_db','separate','stem'];
+               'pitch_change_all','normalize','target_db','separate','stem','separator'];
   for (const k of map) form.append(k, String(state[k]));
-  if (state.uvr_model) form.append('demucs_model', state.uvr_model);
+  
+  // Send appropriate model parameter based on separator choice
+  if (state.separator === 'uvr') {
+    // For UVR separator, send uvr_model_path (uses uvr_model as the path/name)
+    if (state.uvr_model) form.append('uvr_model_path', state.uvr_model);
+  } else {
+    // For Demucs separator (default), send demucs_model
+    if (state.uvr_model) form.append('demucs_model', state.uvr_model);
+  }
+  
   status(`Uploading to ${state.server}…`);
   const res = await fetch(`${state.server}/convert`, { method: 'POST', body: form });
   if (!res.ok) {
@@ -232,9 +242,21 @@ async function runLocal() {
 async function runUvr() {
   const form = new FormData();
   form.append('file', await fs.readFile(state.sourcePath), { filename: path.basename(state.sourcePath) });
-  if (state.uvr_model) form.append('model', state.uvr_model);
-  if (Number.isFinite(state.uvr_shifts)) form.append('shifts', String(state.uvr_shifts));
-  if (Number.isFinite(state.uvr_segment) && state.uvr_segment > 0) form.append('segment', String(state.uvr_segment));
+  
+  // Determine if we should use UVR separator based on state
+  const useUvr = (state.separator === 'uvr');
+  form.append('use_uvr', String(useUvr));
+  
+  if (useUvr) {
+    // When using UVR separator, send uvr_model_path
+    if (state.uvr_model) form.append('uvr_model_path', state.uvr_model);
+  } else {
+    // When using Demucs, send model, shifts, and segment
+    if (state.uvr_model) form.append('model', state.uvr_model);
+    if (Number.isFinite(state.uvr_shifts)) form.append('shifts', String(state.uvr_shifts));
+    if (Number.isFinite(state.uvr_segment) && state.uvr_segment > 0) form.append('segment', String(state.uvr_segment));
+  }
+  
   status(`Uploading to UVR at ${state.server}…`);
   const res = await fetch(`${state.server}/uvr`, { method: 'POST', body: form });
   if (!res.ok) {

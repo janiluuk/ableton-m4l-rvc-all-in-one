@@ -27,6 +27,10 @@ Usage:
 - To split a clip with Ultimate Vocal Remover locally and return **all stems**, switch Mode to **UVR**, set `server` to your
   local API (default `http://127.0.0.1:8000`), and (optionally) set `uvr_model` to a Demucs model name like `htdemucs_mmi`,
   `uvr_shifts` (Demucs ensembles: higher = slower but cleaner), and `uvr_segment` (segment length in seconds; 0 = Demucs default).
+- **Separator Selection**: Use `separator demucs` or `separator uvr` to choose the separation tool when `separate` is enabled.
+  - `demucs` (default): Uses Demucs/htdemucs for stem separation
+  - `uvr`: Uses UVR5 (Ultimate Vocal Remover) library for stem separation
+  The separator choice applies to both voice conversion mode (when `separate` is enabled) and UVR mode.
 - If you need a local Stable Audio endpoint, you can run one with Docker, e.g.:
   `docker run --rm -p 7860:7860 --gpus all ghcr.io/stability-ai/stable-audio-tools:latest stable-audio-api --host 0.0.0.0 --port 7860`
   then set `stability_server http://127.0.0.1:7860` in the device.
