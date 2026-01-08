@@ -11,8 +11,8 @@
     "rect": [
       100.0,
       100.0,
-      1100.0,
-      750.0
+      1200.0,
+      850.0
     ],
     "bglocked": 0,
     "boxes": [
@@ -84,10 +84,10 @@
             25.0,
             25.0,
             150.0,
-            20.0
+            22.0
           ],
           "text": "MAIN VOCALS",
-          "fontsize": 12.0,
+          "fontsize": 13.0,
           "fontface": 1
         }
       },
@@ -97,9 +97,9 @@
           "maxclass": "comment",
           "patching_rect": [
             25.0,
-            50.0,
-            100.0,
-            20.0
+            55.0,
+            90.0,
+            18.0
           ],
           "text": "Volume (dB)"
         }
@@ -110,7 +110,7 @@
           "maxclass": "flonum",
           "patching_rect": [
             25.0,
-            70.0,
+            75.0,
             80.0,
             22.0
           ]
@@ -135,9 +135,9 @@
           "maxclass": "comment",
           "patching_rect": [
             180.0,
-            50.0,
+            55.0,
             80.0,
-            20.0
+            18.0
           ],
           "text": "Filter"
         }
@@ -148,7 +148,7 @@
           "maxclass": "number",
           "patching_rect": [
             180.0,
-            70.0,
+            75.0,
             60.0,
             22.0
           ]
@@ -175,10 +175,10 @@
             25.0,
             205.0,
             150.0,
-            20.0
+            22.0
           ],
           "text": "BACKUP VOCALS",
-          "fontsize": 12.0,
+          "fontsize": 13.0,
           "fontface": 1
         }
       },
@@ -188,9 +188,9 @@
           "maxclass": "comment",
           "patching_rect": [
             25.0,
-            230.0,
-            100.0,
-            20.0
+            235.0,
+            90.0,
+            18.0
           ],
           "text": "Volume (dB)"
         }
@@ -201,7 +201,7 @@
           "maxclass": "flonum",
           "patching_rect": [
             25.0,
-            250.0,
+            255.0,
             80.0,
             22.0
           ]
@@ -228,10 +228,10 @@
             25.0,
             385.0,
             150.0,
-            20.0
+            22.0
           ],
           "text": "INSTRUMENTAL",
-          "fontsize": 12.0,
+          "fontsize": 13.0,
           "fontface": 1
         }
       },
@@ -241,9 +241,9 @@
           "maxclass": "comment",
           "patching_rect": [
             25.0,
-            410.0,
-            100.0,
-            20.0
+            415.0,
+            90.0,
+            18.0
           ],
           "text": "Volume (dB)"
         }
@@ -254,7 +254,7 @@
           "maxclass": "flonum",
           "patching_rect": [
             25.0,
-            430.0,
+            435.0,
             80.0,
             22.0
           ]
@@ -280,9 +280,9 @@
           "text": "Replicate API Key",
           "patching_rect": [
             370.0,
-            205.0,
+            215.0,
             150.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -292,8 +292,8 @@
           "maxclass": "textedit",
           "patching_rect": [
             370.0,
-            225.0,
-            300.0,
+            235.0,
+            360.0,
             22.0
           ]
         }
@@ -318,9 +318,9 @@
           "text": "Drop source WAV/MP3 here",
           "patching_rect": [
             370.0,
-            425.0,
+            440.0,
             200.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -330,8 +330,8 @@
           "maxclass": "dropfile",
           "patching_rect": [
             370.0,
-            445.0,
-            320.0,
+            460.0,
+            360.0,
             80.0
           ]
         }
@@ -382,9 +382,9 @@
           "text": "Voice Model",
           "patching_rect": [
             370.0,
+            160.0,
             150.0,
-            180.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -394,8 +394,8 @@
           "maxclass": "textedit",
           "patching_rect": [
             370.0,
-            170.0,
-            220.0,
+            180.0,
+            250.0,
             22.0
           ]
         }
@@ -419,10 +419,10 @@
           "maxclass": "comment",
           "text": "custom_rvc_model_download_url (optional)",
           "patching_rect": [
-            20.0,
-            230.0,
+            370.0,
+            325.0,
             280.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -431,10 +431,10 @@
           "id": "url",
           "maxclass": "textedit",
           "patching_rect": [
-            20.0,
-            250.0,
-            330.0,
-            20.0
+            370.0,
+            345.0,
+            360.0,
+            22.0
           ]
         }
       },
@@ -457,10 +457,10 @@
           "maxclass": "comment",
           "text": "Index Rate",
           "patching_rect": [
-            370.0,
-            315.0,
-            150.0,
-            20.0
+            180.0,
+            235.0,
+            90.0,
+            18.0
           ]
         }
       },
@@ -469,8 +469,8 @@
           "id": "idx_num",
           "maxclass": "flonum",
           "patching_rect": [
-            370.0,
-            335.0,
+            180.0,
+            255.0,
             80.0,
             22.0
           ]
@@ -496,11 +496,11 @@
           "text": "PITCH/OCTAVE (semitones)",
           "patching_rect": [
             370.0,
-            75.0,
-            200.0,
+            80.0,
+            250.0,
             22.0
           ],
-          "fontsize": 12.0,
+          "fontsize": 14.0,
           "fontface": 1
         }
       },
@@ -510,9 +510,9 @@
           "maxclass": "number",
           "patching_rect": [
             370.0,
-            100.0,
+            105.0,
             120.0,
-            35.0
+            40.0
           ]
         }
       },
@@ -536,9 +536,9 @@
           "text": "Process (per mode)",
           "patching_rect": [
             370.0,
-            375.0,
+            385.0,
             220.0,
-            40.0
+            45.0
           ]
         }
       },
@@ -587,8 +587,8 @@
           "maxclass": "message",
           "patching_rect": [
             20.0,
-            620.0,
             700.0,
+            850.0,
             22.0
           ]
         }
@@ -599,8 +599,8 @@
           "maxclass": "slider",
           "patching_rect": [
             20.0,
-            645.0,
-            700.0,
+            725.0,
+            850.0,
             20.0
           ]
         }
@@ -612,8 +612,8 @@
           "text": "(errors)",
           "patching_rect": [
             20.0,
-            670.0,
-            700.0,
+            750.0,
+            850.0,
             22.0
           ]
         }
@@ -636,9 +636,9 @@
           "id": "wave",
           "maxclass": "waveform~",
           "patching_rect": [
-            730.0,
-            620.0,
-            350.0,
+            880.0,
+            700.0,
+            300.0,
             120.0
           ]
         }
@@ -714,10 +714,10 @@
           "maxclass": "comment",
           "text": "Create new audio track + auto-target first empty slot",
           "patching_rect": [
-            500.0,
-            630.0,
-            350.0,
-            20.0
+            270.0,
+            640.0,
+            320.0,
+            18.0
           ]
         }
       },
@@ -727,10 +727,10 @@
           "maxclass": "textbutton",
           "text": "New Track Mode",
           "patching_rect": [
-            500.0,
-            650.0,
-            120.0,
-            24.0
+            270.0,
+            660.0,
+            150.0,
+            26.0
           ]
         }
       },
@@ -818,10 +818,10 @@
           "maxclass": "comment",
           "text": "Last processed file path",
           "patching_rect": [
-            500.0,
-            530.0,
+            270.0,
+            555.0,
             200.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -844,10 +844,10 @@
           "maxclass": "comment",
           "text": "Create NEW audio track and drop result into first slot",
           "patching_rect": [
-            500.0,
+            270.0,
             585.0,
-            360.0,
-            20.0
+            320.0,
+            18.0
           ]
         }
       },
@@ -857,10 +857,10 @@
           "maxclass": "textbutton",
           "text": "New track + drop result",
           "patching_rect": [
-            500.0,
+            270.0,
             605.0,
             190.0,
-            24.0
+            26.0
           ]
         }
       },
@@ -1014,9 +1014,9 @@
           "text": "Destination Mode",
           "patching_rect": [
             20.0,
-            530.0,
+            555.0,
             150.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -1030,7 +1030,7 @@
           ],
           "patching_rect": [
             20.0,
-            550.0,
+            575.0,
             230.0,
             22.0
           ]
@@ -1056,9 +1056,9 @@
           "text": "Arrangement insertion controls",
           "patching_rect": [
             20.0,
-            580.0,
+            605.0,
             250.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -1134,9 +1134,9 @@
           "text": "Insert at playhead",
           "patching_rect": [
             20.0,
-            610.0,
+            625.0,
             150.0,
-            24.0
+            26.0
           ]
         }
       },
@@ -1198,10 +1198,10 @@
           "maxclass": "comment",
           "text": "output_format",
           "patching_rect": [
-            650.0,
-            315.0,
-            120.0,
-            20.0
+            630.0,
+            160.0,
+            100.0,
+            18.0
           ]
         }
       },
@@ -1214,8 +1214,8 @@
             "mp3"
           ],
           "patching_rect": [
-            650.0,
-            335.0,
+            630.0,
+            180.0,
             100.0,
             22.0
           ]
@@ -1240,10 +1240,10 @@
           "maxclass": "comment",
           "text": "Pitch Algorithm",
           "patching_rect": [
-            460.0,
-            315.0,
-            180.0,
-            20.0
+            500.0,
+            80.0,
+            160.0,
+            18.0
           ]
         }
       },
@@ -1256,8 +1256,8 @@
             "mangio-crepe"
           ],
           "patching_rect": [
-            460.0,
-            335.0,
+            500.0,
+            105.0,
             150.0,
             22.0
           ]
@@ -1283,9 +1283,9 @@
           "text": "Protect",
           "patching_rect": [
             180.0,
-            290.0,
-            100.0,
-            20.0
+            110.0,
+            80.0,
+            18.0
           ]
         }
       },
@@ -1295,8 +1295,8 @@
           "maxclass": "flonum",
           "patching_rect": [
             180.0,
-            310.0,
-            80.0,
+            130.0,
+            70.0,
             22.0
           ]
         }
@@ -1321,9 +1321,9 @@
           "text": "RMS Mix",
           "patching_rect": [
             25.0,
-            290.0,
-            100.0,
-            20.0
+            110.0,
+            90.0,
+            18.0
           ]
         }
       },
@@ -1333,7 +1333,7 @@
           "maxclass": "flonum",
           "patching_rect": [
             25.0,
-            310.0,
+            130.0,
             80.0,
             22.0
           ]
@@ -1359,9 +1359,9 @@
           "text": "Filter",
           "patching_rect": [
             180.0,
-            110.0,
-            100.0,
-            20.0
+            415.0,
+            80.0,
+            18.0
           ]
         }
       },
@@ -1371,7 +1371,7 @@
           "maxclass": "number",
           "patching_rect": [
             180.0,
-            130.0,
+            435.0,
             60.0,
             22.0
           ]
@@ -1396,10 +1396,10 @@
           "maxclass": "comment",
           "text": "Takes history",
           "patching_rect": [
-            500.0,
-            730.0,
-            140.0,
-            20.0
+            600.0,
+            555.0,
+            150.0,
+            18.0
           ]
         }
       },
@@ -1408,9 +1408,9 @@
           "id": "takes",
           "maxclass": "umenu",
           "patching_rect": [
-            500.0,
-            750.0,
-            420.0,
+            600.0,
+            575.0,
+            250.0,
             22.0
           ]
         }
@@ -1486,10 +1486,10 @@
           "maxclass": "comment",
           "text": "Take name",
           "patching_rect": [
-            500.0,
-            810.0,
-            120.0,
-            20.0
+            600.0,
+            610.0,
+            100.0,
+            18.0
           ]
         }
       },
@@ -1498,9 +1498,9 @@
           "id": "take_name",
           "maxclass": "textedit",
           "patching_rect": [
-            500.0,
-            830.0,
-            220.0,
+            600.0,
+            630.0,
+            200.0,
             22.0
           ]
         }
@@ -1511,10 +1511,10 @@
           "maxclass": "comment",
           "text": "Color index (0-69)",
           "patching_rect": [
-            730.0,
             810.0,
-            150.0,
-            20.0
+            610.0,
+            120.0,
+            18.0
           ]
         }
       },
@@ -1523,8 +1523,8 @@
           "id": "color_num",
           "maxclass": "number",
           "patching_rect": [
-            730.0,
-            830.0,
+            810.0,
+            630.0,
             70.0,
             22.0
           ]
@@ -1614,10 +1614,10 @@
           "maxclass": "textbutton",
           "text": "Apply name & color to current slot clip",
           "patching_rect": [
-            930.0,
-            860.0,
-            300.0,
-            24.0
+            600.0,
+            665.0,
+            280.0,
+            26.0
           ]
         }
       },
@@ -1627,10 +1627,10 @@
           "maxclass": "comment",
           "text": "Arrangement: apply to selected (detail) clip",
           "patching_rect": [
-            500.0,
-            860.0,
-            300.0,
-            20.0
+            600.0,
+            695.0,
+            280.0,
+            18.0
           ]
         }
       },
@@ -1702,9 +1702,9 @@
           "text": "Backend",
           "patching_rect": [
             370.0,
-            15.0,
+            20.0,
             120.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -1718,7 +1718,7 @@
           ],
           "patching_rect": [
             370.0,
-            35.0,
+            40.0,
             140.0,
             22.0
           ]
@@ -1744,9 +1744,9 @@
           "text": "Local server URL (http://host:8000)",
           "patching_rect": [
             370.0,
-            260.0,
+            270.0,
             240.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -1756,8 +1756,8 @@
           "maxclass": "textedit",
           "patching_rect": [
             370.0,
-            280.0,
-            300.0,
+            290.0,
+            360.0,
             22.0
           ]
         }
@@ -1781,10 +1781,10 @@
           "maxclass": "comment",
           "text": "Stable Server",
           "patching_rect": [
-            700.0,
-            240.0,
-            180.0,
-            20.0
+            750.0,
+            130.0,
+            150.0,
+            18.0
           ]
         }
       },
@@ -1793,8 +1793,8 @@
           "id": "stability_url",
           "maxclass": "textedit",
           "patching_rect": [
-            700.0,
-            260.0,
+            750.0,
+            150.0,
             180.0,
             22.0
           ]
@@ -1819,10 +1819,10 @@
           "maxclass": "comment",
           "text": "Stable prompt (optional for Stable Audio)",
           "patching_rect": [
-            370.0,
-            535.0,
-            250.0,
-            20.0
+            750.0,
+            185.0,
+            180.0,
+            18.0
           ]
         }
       },
@@ -1831,10 +1831,10 @@
           "id": "stable_prompt",
           "maxclass": "textedit",
           "patching_rect": [
-            370.0,
-            555.0,
-            330.0,
-            22.0
+            750.0,
+            205.0,
+            180.0,
+            40.0
           ]
         }
       },
@@ -1858,9 +1858,9 @@
           "text": "Processing Mode (Voice/RVC, UVR, Stable Audio)",
           "patching_rect": [
             520.0,
-            15.0,
+            20.0,
             250.0,
-            20.0
+            18.0
           ]
         }
       },
@@ -1875,7 +1875,7 @@
           ],
           "patching_rect": [
             520.0,
-            35.0,
+            40.0,
             160.0,
             22.0
           ]
@@ -1900,10 +1900,10 @@
           "maxclass": "comment",
           "text": "UVR model (Demucs name)",
           "patching_rect": [
-            700.0,
-            75.0,
-            180.0,
-            20.0
+            750.0,
+            20.0,
+            150.0,
+            18.0
           ]
         }
       },
@@ -1912,8 +1912,8 @@
           "id": "uvr_model",
           "maxclass": "textedit",
           "patching_rect": [
-            700.0,
-            95.0,
+            750.0,
+            40.0,
             180.0,
             22.0
           ]
@@ -1938,10 +1938,10 @@
           "maxclass": "comment",
           "text": "UVR Shifts",
           "patching_rect": [
-            700.0,
-            130.0,
-            180.0,
-            20.0
+            750.0,
+            75.0,
+            150.0,
+            18.0
           ]
         }
       },
@@ -1950,8 +1950,8 @@
           "id": "uvr_shifts_num",
           "maxclass": "number",
           "patching_rect": [
-            700.0,
-            150.0,
+            750.0,
+            95.0,
             70.0,
             22.0
           ]
@@ -1976,10 +1976,10 @@
           "maxclass": "comment",
           "text": "UVR Segment",
           "patching_rect": [
-            700.0,
-            185.0,
-            180.0,
-            20.0
+            830.0,
+            75.0,
+            150.0,
+            18.0
           ]
         }
       },
@@ -1988,8 +1988,8 @@
           "id": "uvr_segment_num",
           "maxclass": "flonum",
           "patching_rect": [
-            700.0,
-            205.0,
+            830.0,
+            95.0,
             70.0,
             22.0
           ]
