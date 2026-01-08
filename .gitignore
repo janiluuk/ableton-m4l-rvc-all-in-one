@@ -33,3 +33,4 @@ build/
 # RVC models (large files, user-specific)
 server/models/*/
 !server/models/.gitkeep
+*.backup
