@@ -96,25 +96,39 @@ Optional: Applio integration
 -----------------------------
 To use Applio for additional voice processing after vocal separation:
 
-1. Install Applio in the Docker container at `/applio/core.py` or modify the Dockerfile to include it.
-2. Place your Applio-compatible models in the same `/models` directory structure.
-3. In the device, enable vocal separation with `separate true`.
-4. Set `applio_enabled true` and `applio_model <MODEL_NAME>` to process the separated vocals through Applio.
-5. The server will return both the standard RVC output and an additional Applio-processed output.
+**With Docker Compose (Recommended):**
 
-Note: Applio processing requires the Applio CLI to be available at `/applio/core.py` in the container. You can install it from https://github.com/IAHispano/Applio.
-
-Optional: one-compose setup for RVC + Stable Audio
---------------------------------------------------
-Use the provided example to boot both local services with NVIDIA GPU access:
+The Applio service runs in its own container and is automatically configured when you use docker-compose:
 
 ```bash
-cp docker-compose.example.yml docker-compose.yml
-docker compose build rvc
+cd server
+docker compose build
 docker compose up -d
 ```
 
-- RVC/UVR server runs at `http://localhost:8000` and mounts `server_local_pinned_uvr/models`.
+This starts both the RVC server (port 8000) and Applio service (port 8001). They share the same `/models` volume.
+
+**Usage:**
+1. Place your Applio-compatible models in `server/models/<MODEL_NAME>/` with:
+   - `model.pth`
+   - `added.index` (optional)
+2. In the device, set `applio_enabled true` and `applio_model <MODEL_NAME>`.
+3. The server will return both the standard RVC output and an additional Applio-processed output in a zip file.
+
+**Note:** Separation is automatically enabled when Applio processing is requested.
+
+Optional: one-compose setup for RVC + Applio + Stable Audio
+------------------------------------------------------------
+Use the provided example to boot all services with NVIDIA GPU access:
+
+```bash
+cp docker-compose.example.yml docker-compose.yml
+docker compose build
+docker compose up -d
+```
+
+- RVC/UVR server runs at `http://localhost:8000` and mounts `server/models`.
+- Applio service runs at `http://localhost:8001` and shares the same models directory.
 - Stable Audio runs at `http://localhost:7860` with cache under `./stable-audio-cache`.
 
-Comment out either service in `docker-compose.yml` if you only need one.
+Comment out any service in `docker-compose.yml` if you don't need it.

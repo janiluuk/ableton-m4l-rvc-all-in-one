@@ -13,6 +13,7 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - DEMUCS_MODEL=htdemucs
+      - APPLIO_SERVER=http://applio:8001
     deploy:
       resources:
         reservations:
@@ -26,6 +27,32 @@ services:
       - ./server/models:/models
       # Optionally mount your own fork to override /rvc:
       # - /path/to/your/fork:/rvc
+    depends_on:
+      - applio
+
+  applio:
+    build:
+      context: ./applio
+      args:
+        APPLIO_REPO: https://github.com/IAHispano/Applio.git
+        APPLIO_COMMIT: ""
+    image: applio-service:latest
+    container_name: applio-service
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./server/models:/models
 
   stable-audio:
     image: ghcr.io/stability-ai/stable-audio-tools:latest
