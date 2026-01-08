@@ -175,6 +175,10 @@ class RVCConverter:
         normalize = kw.get("normalize", True)
         target_db = kw.get("target_db", -0.1)
 
+        # If Applio is enabled, ensure separation is also enabled
+        if kw.get("applio_enabled") and kw.get("applio_model"):
+            kw["separate"] = True
+
         work_input = in_path
         separated_vocal_path = None
         if kw.get("separate"):

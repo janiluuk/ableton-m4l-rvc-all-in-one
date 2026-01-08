@@ -43,6 +43,7 @@ Pick a processing mode
 - **UVR (all stems)**: set **Backend → Local**, set `server http://127.0.0.1:8000`, and choose **Mode → UVR**. The device sends your file to `/uvr`, downloads a zip of stems, and drops each stem on its own track. You can pass a Demucs model name with `uvr_model`, add ensembles with `uvr_shifts`, or tweak memory use with `uvr_segment` (seconds).
 - **Stable Audio**: choose **Mode → Stable Audio**. The device posts the dropped file plus your `stable_prompt` (optional) to `/v2beta/stable-audio/transform` and returns the generated audio as a new track.
 - **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set.
+- **Applio processing**: when using voice conversion with vocal separation enabled, you can additionally process the separated vocals through Applio by setting `applio_enabled true` and `applio_model <MODEL>`. This will generate both the standard RVC output and an additional Applio-processed output file.
 
 Extra quality-of-life features
 - Auto-drop to Session/Arrangement, new track button, take history and re-drop, clip naming/color, and built-in WAV normalization.
@@ -90,6 +91,18 @@ DEMUCS_MODEL=htdemucs_mmi docker compose up -d
 ```
 
 Set `server http://127.0.0.1:8000` in the device. Adjust `uvr_model`, `uvr_shifts`, or `uvr_segment` before pressing **Process**.
+
+Optional: Applio integration
+-----------------------------
+To use Applio for additional voice processing after vocal separation:
+
+1. Install Applio in the Docker container at `/applio/core.py` or modify the Dockerfile to include it.
+2. Place your Applio-compatible models in the same `/models` directory structure.
+3. In the device, enable vocal separation with `separate true`.
+4. Set `applio_enabled true` and `applio_model <MODEL_NAME>` to process the separated vocals through Applio.
+5. The server will return both the standard RVC output and an additional Applio-processed output.
+
+Note: Applio processing requires the Applio CLI to be available at `/applio/core.py` in the container. You can install it from https://github.com/IAHispano/Applio.
 
 Optional: one-compose setup for RVC + Stable Audio
 --------------------------------------------------
