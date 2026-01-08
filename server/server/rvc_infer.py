@@ -1,5 +1,7 @@
 # server/rvc_infer.py
 import os, tempfile, subprocess, contextlib, wave, numpy as np, shutil
+import urllib.request
+import urllib.parse
 import torch, warnings, librosa, importlib, hashlib, math
 from scipy.io import wavfile
 warnings.filterwarnings("ignore")
@@ -224,6 +226,8 @@ class RVCConverter:
             "webui_cli": "/rvc/infer_cli.py",
             "mangio": "/rvc/inference.py",
         }
+        # Applio server URL (environment variable or default)
+        self.applio_server = os.environ.get("APPLIO_SERVER", "http://applio:8001")
 
     def _webui_call(self, in_path, out_path, **kw):
         args = ["python", self.paths["webui_cli"],
@@ -275,14 +279,122 @@ class RVCConverter:
             args += ["--f0_method", str(kw["pitch_detection_algorithm"])]
         return args
 
+    def _process_with_applio(self, vocal_path, **kw):
+        """Process separated vocals through Applio container via HTTP and return the output path."""
+        import json
+        from urllib.error import URLError, HTTPError
+        import uuid
+        
+        output_format = kw.get("output_format", "wav")
+        normalize = kw.get("normalize", True)
+        target_db = kw.get("target_db", -0.1)
+
+        # Prepare multipart form data with proper boundary
+        boundary = uuid.uuid4().hex
+        
+        # Read the audio file
+        with open(vocal_path, 'rb') as f:
+            audio_data = f.read()
+        
+        # Build multipart form data
+        body = []
+        
+        # Add file
+        body.append(f'--{boundary}')
+        body.append(f'Content-Disposition: form-data; name="file"; filename="{os.path.basename(vocal_path)}"')
+        body.append('Content-Type: audio/wav')
+        body.append('')
+        body.append(audio_data.decode('latin1'))  # Binary data
+        
+        # Add model_name
+        model_name = kw.get("applio_model") if kw.get("applio_model") else kw.get("rvc_model")
+        if model_name:
+            body.append(f'--{boundary}')
+            body.append('Content-Disposition: form-data; name="model_name"')
+            body.append('')
+            body.append(model_name)
+        
+        # Add pitch
+        if kw.get("pitch_change_all") is not None:
+            body.append(f'--{boundary}')
+            body.append('Content-Disposition: form-data; name="pitch"')
+            body.append('')
+            body.append(str(int(kw["pitch_change_all"])))
+        
+        # Add other parameters
+        params = {
+            'index_rate': kw.get("index_rate"),
+            'filter_radius': kw.get("filter_radius"),
+            'rms_mix_rate': kw.get("rms_mix_rate"),
+            'f0_method': kw.get("pitch_detection_algorithm"),
+            'output_format': output_format
+        }
+        
+        for param_name, param_value in params.items():
+            if param_value is not None:
+                body.append(f'--{boundary}')
+                body.append(f'Content-Disposition: form-data; name="{param_name}"')
+                body.append('')
+                body.append(str(param_value))
+        
+        body.append(f'--{boundary}--')
+        body_str = '\r\n'.join(str(b) if not isinstance(b, bytes) else b.decode('latin1') for b in body)
+        body_bytes = body_str.encode('latin1')
+        
+        # Make HTTP request to Applio container with configurable timeout
+        timeout = int(os.environ.get("APPLIO_TIMEOUT", "120"))  # Default 2 minutes
+        
+        try:
+            req = urllib.request.Request(
+                f"{self.applio_server}/convert",
+                data=body_bytes,
+                headers={
+                    'Content-Type': f'multipart/form-data; boundary={boundary}',
+                    'Content-Length': str(len(body_bytes))
+                },
+                method='POST'
+            )
+            
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                if response.status != 200:
+                    raise RuntimeError(f"Applio server returned status {response.status}")
+                
+                # Save response to file
+                tmp_dir = tempfile.mkdtemp()
+                applio_out = os.path.join(tmp_dir, "applio_out." + ("wav" if output_format == "wav" else "mp3"))
+                
+                with open(applio_out, 'wb') as out_file:
+                    out_file.write(response.read())
+                
+        except (URLError, HTTPError) as e:
+            raise RuntimeError(f"Failed to connect to Applio server at {self.applio_server}: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Applio processing failed: {e}")
+
+        if normalize and applio_out.endswith(".wav"):
+            try:
+                peak_normalize_wav(applio_out, target_db)
+            except (ValueError, OSError, RuntimeError):
+                # Normalization failed, continue without it
+                pass
+
+        return applio_out
+
     def convert(self, **kw):
         in_path = kw["in_path"]
         output_format = kw.get("output_format","wav")
         normalize = kw.get("normalize", True)
         target_db = kw.get("target_db", -0.1)
 
+        # If Applio is enabled, ensure separation is also enabled
+        if kw.get("applio_enabled") and kw.get("applio_model"):
+            kw["separate"] = True
+
         work_input = in_path
+        separated_vocal_path = None
         if kw.get("separate"):
+            work_input, _ = demucs_separate(in_path, stem=kw.get("stem","vocals"), model=kw.get("demucs_model"))
+            separated_vocal_path = work_input
             separator = kw.get("separator", "demucs")  # Default to demucs for backward compatibility
             stem = kw.get("stem", "vocals")
             
@@ -311,7 +423,14 @@ class RVCConverter:
                 peak_normalize_wav(out_path, target_db)
             except Exception:
                 pass
-        return out_path
+
+        # Process through Applio if enabled and vocal was separated
+        applio_out_path = None
+        if kw.get("applio_enabled") and separated_vocal_path and kw.get("applio_model"):
+            applio_out_path = self._process_with_applio(separated_vocal_path, **kw)
+
+        # Always return a tuple (rvc_output, applio_output) where applio_output may be None
+        return (out_path, applio_out_path)
 
     def uvr(self, in_path, model=None, shifts=None, segment=None, use_uvr=False, uvr_model_path=None):
         """Separate all stems and return a zip archive path.

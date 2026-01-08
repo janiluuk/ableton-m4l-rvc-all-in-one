@@ -13,9 +13,30 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - DEMUCS_MODEL=htdemucs
+      - APPLIO_SERVER=http://applio:8001
     ports:
       - "8000:8000"
     volumes:
       - ./models:/models
       # Optionally mount your own fork to override /rvc:
       # - /path/to/your/fork:/rvc
+    depends_on:
+      - applio
+
+  applio:
+    build:
+      context: ../applio
+      args:
+        APPLIO_REPO: https://github.com/IAHispano/Applio.git
+        APPLIO_COMMIT: ""
+    image: applio-service:latest
+    container_name: applio-service
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./models:/models
+
