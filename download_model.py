@@ -17,13 +17,30 @@ import os
 import argparse
 import urllib.request
 import urllib.parse
+import urllib.error
 import zipfile
 import shutil
 from pathlib import Path
 
 
+# Maximum file size to download (500MB)
+MAX_FILE_SIZE = 500 * 1024 * 1024
+
+
+def validate_url(url: str) -> bool:
+    """Validate that URL is using http or https scheme."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        print(f"✗ Error: Only http and https URLs are supported (got: {parsed.scheme})")
+        return False
+    return True
+
+
 def download_file(url: str, dest_path: Path, show_progress: bool = True):
     """Download a file from URL to destination path with optional progress."""
+    if not validate_url(url):
+        return False
+    
     print(f"Downloading from: {url}")
     print(f"Saving to: {dest_path}")
     
@@ -31,6 +48,11 @@ def download_file(url: str, dest_path: Path, show_progress: bool = True):
         if not show_progress or total_size <= 0:
             return
         downloaded = block_num * block_size
+        
+        # Check file size limit
+        if downloaded > MAX_FILE_SIZE:
+            raise ValueError(f"File size exceeds maximum allowed size of {MAX_FILE_SIZE / (1024*1024):.0f}MB")
+        
         percent = min(100, downloaded * 100 / total_size)
         bar_length = 50
         filled = int(bar_length * downloaded / total_size)
@@ -43,9 +65,19 @@ def download_file(url: str, dest_path: Path, show_progress: bool = True):
             print()  # New line after progress bar
         print(f"✓ Downloaded successfully")
         return True
-    except Exception as e:
+    except urllib.error.URLError as e:
+        print(f"\n✗ Download failed (URL error): {e}")
+        return False
+    except urllib.error.HTTPError as e:
+        print(f"\n✗ Download failed (HTTP {e.code}): {e.reason}")
+        return False
+    except ValueError as e:
         print(f"\n✗ Download failed: {e}")
         return False
+    except OSError as e:
+        print(f"\n✗ Download failed (I/O error): {e}")
+        return False
+
 
 
 def extract_zip(zip_path: Path, extract_to: Path):
@@ -56,8 +88,11 @@ def extract_zip(zip_path: Path, extract_to: Path):
             zip_ref.extractall(extract_to)
         print(f"✓ Extracted to {extract_to}")
         return True
-    except Exception as e:
-        print(f"✗ Extraction failed: {e}")
+    except zipfile.BadZipFile as e:
+        print(f"✗ Extraction failed (invalid zip file): {e}")
+        return False
+    except OSError as e:
+        print(f"✗ Extraction failed (I/O error): {e}")
         return False
 
 
@@ -228,9 +263,9 @@ Examples:
         print(f"✗ Error: Could not create models directory: {e}")
         return 1
     
-    # Validate voice name (alphanumeric, underscore, hyphen)
-    if not all(c.isalnum() or c in ('_', '-') for c in args.voice_name):
-        print(f"✗ Error: Voice name should contain only letters, numbers, underscore, or hyphen")
+    # Validate voice name (alphanumeric, underscore, hyphen, dot)
+    if not all(c.isalnum() or c in ('_', '-', '.') for c in args.voice_name):
+        print(f"✗ Error: Voice name should contain only letters, numbers, underscore, hyphen, or dot")
         return 1
     
     # Run the download and setup
