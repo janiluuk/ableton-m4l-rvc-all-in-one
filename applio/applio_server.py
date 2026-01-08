@@ -43,8 +43,11 @@ async def convert_audio(
         output_format: Output format (wav or mp3)
     """
     try:
+        # Sanitize filename - use fixed extension based on content
+        file_ext = ".wav" if file.content_type and "audio" in file.content_type else ".wav"
+        
         # Save uploaded file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1] or ".wav") as tmp_in:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_in:
             data = await file.read()
             tmp_in.write(data)
             in_path = tmp_in.name
@@ -53,7 +56,7 @@ async def convert_audio(
         tmp_dir = tempfile.mkdtemp()
         out_path = os.path.join(tmp_dir, f"applio_out.{output_format}")
 
-        # Build Applio command
+        # Build Applio command with timeout
         cmd = ["python3", "/applio/core.py", "infer",
                "--input_path", in_path,
                "--output_path", out_path]
@@ -81,8 +84,10 @@ async def convert_audio(
         if f0_method:
             cmd += ["--f0_method", str(f0_method)]
 
-        # Run Applio
-        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # Run Applio with timeout
+        timeout = int(os.environ.get("APPLIO_PROCESS_TIMEOUT", "300"))  # 5 minutes default
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                            text=True, timeout=timeout)
         
         if proc.returncode != 0 or not os.path.exists(out_path):
             return JSONResponse(
@@ -94,6 +99,8 @@ async def convert_audio(
         media_type = "audio/wav" if output_format == "wav" else "audio/mpeg"
         return FileResponse(out_path, filename=os.path.basename(out_path), media_type=media_type)
         
+    except subprocess.TimeoutExpired:
+        return JSONResponse({"error": "Applio processing timeout"}, status_code=504)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

@@ -124,13 +124,14 @@ class RVCConverter:
         """Process separated vocals through Applio container via HTTP and return the output path."""
         import json
         from urllib.error import URLError, HTTPError
+        import uuid
         
         output_format = kw.get("output_format", "wav")
         normalize = kw.get("normalize", True)
         target_db = kw.get("target_db", -0.1)
 
-        # Prepare multipart form data
-        boundary = '----WebKitFormBoundary' + ''.join([str(ord(c)) for c in os.urandom(8).hex()[:16]])
+        # Prepare multipart form data with proper boundary
+        boundary = uuid.uuid4().hex
         
         # Read the audio file
         with open(vocal_path, 'rb') as f:
@@ -140,26 +141,26 @@ class RVCConverter:
         body = []
         
         # Add file
-        body.append(f'--{boundary}'.encode())
-        body.append(f'Content-Disposition: form-data; name="file"; filename="{os.path.basename(vocal_path)}"'.encode())
-        body.append(b'Content-Type: audio/wav')
-        body.append(b'')
-        body.append(audio_data)
+        body.append(f'--{boundary}')
+        body.append(f'Content-Disposition: form-data; name="file"; filename="{os.path.basename(vocal_path)}"')
+        body.append('Content-Type: audio/wav')
+        body.append('')
+        body.append(audio_data.decode('latin1'))  # Binary data
         
         # Add model_name
         model_name = kw.get("applio_model") if kw.get("applio_model") else kw.get("rvc_model")
         if model_name:
-            body.append(f'--{boundary}'.encode())
-            body.append(b'Content-Disposition: form-data; name="model_name"')
-            body.append(b'')
-            body.append(model_name.encode())
+            body.append(f'--{boundary}')
+            body.append('Content-Disposition: form-data; name="model_name"')
+            body.append('')
+            body.append(model_name)
         
         # Add pitch
         if kw.get("pitch_change_all") is not None:
-            body.append(f'--{boundary}'.encode())
-            body.append(b'Content-Disposition: form-data; name="pitch"')
-            body.append(b'')
-            body.append(str(int(kw["pitch_change_all"])).encode())
+            body.append(f'--{boundary}')
+            body.append('Content-Disposition: form-data; name="pitch"')
+            body.append('')
+            body.append(str(int(kw["pitch_change_all"])))
         
         # Add other parameters
         params = {
@@ -172,15 +173,18 @@ class RVCConverter:
         
         for param_name, param_value in params.items():
             if param_value is not None:
-                body.append(f'--{boundary}'.encode())
-                body.append(f'Content-Disposition: form-data; name="{param_name}"'.encode())
-                body.append(b'')
-                body.append(str(param_value).encode())
+                body.append(f'--{boundary}')
+                body.append(f'Content-Disposition: form-data; name="{param_name}"')
+                body.append('')
+                body.append(str(param_value))
         
-        body.append(f'--{boundary}--'.encode())
-        body_bytes = b'\r\n'.join(body)
+        body.append(f'--{boundary}--')
+        body_str = '\r\n'.join(str(b) if not isinstance(b, bytes) else b.decode('latin1') for b in body)
+        body_bytes = body_str.encode('latin1')
         
-        # Make HTTP request to Applio container
+        # Make HTTP request to Applio container with configurable timeout
+        timeout = int(os.environ.get("APPLIO_TIMEOUT", "120"))  # Default 2 minutes
+        
         try:
             req = urllib.request.Request(
                 f"{self.applio_server}/convert",
@@ -192,7 +196,7 @@ class RVCConverter:
                 method='POST'
             )
             
-            with urllib.request.urlopen(req, timeout=300) as response:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
                 if response.status != 200:
                     raise RuntimeError(f"Applio server returned status {response.status}")
                 

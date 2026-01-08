@@ -3,14 +3,8 @@ Tests for Applio integration
 """
 import pytest
 import os
-import sys
-import tempfile
-import shutil
-from pathlib import Path
 
-# Add server directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../server/server'))
-
+# Import will work via pytest.ini pythonpath configuration
 from rvc_infer import RVCConverter
 
 class TestApplioIntegration:
