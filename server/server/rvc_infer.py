@@ -216,7 +216,8 @@ class RVCConverter:
     def uvr(self, in_path, model=None, shifts=None, segment=None):
         """Separate all stems with Demucs and return a zip archive path."""
         out_dir = demucs_run(in_path, model=model, shifts=shifts, segment=segment)
-        base = tempfile.mktemp()
+        zip_tmp_dir = tempfile.mkdtemp()
+        base = os.path.join(zip_tmp_dir, 'uvr_stems')
         archive_path = shutil.make_archive(base, 'zip', out_dir)
         if not os.path.exists(archive_path):
             raise FileNotFoundError("Failed to create UVR zip archive")

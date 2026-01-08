@@ -67,8 +67,9 @@ async def convert_audio(
             shutil.copy2(out_path, rvc_dest)
             shutil.copy2(applio_out_path, applio_dest)
             
-            # Create zip
-            base = tempfile.mktemp()
+            # Create zip using a secure temporary file
+            zip_tmp_dir = tempfile.mkdtemp()
+            base = os.path.join(zip_tmp_dir, 'rvc_applio_outputs')
             zip_path = shutil.make_archive(base, 'zip', zip_dir)
             return FileResponse(zip_path, filename="rvc_applio_outputs.zip", media_type="application/zip")
         
