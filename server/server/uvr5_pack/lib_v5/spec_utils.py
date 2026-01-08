@@ -381,6 +381,7 @@ def istft(spec, hl):
     wave_left = librosa.istft(spec_left, hop_length=hl)
     wave_right = librosa.istft(spec_right, hop_length=hl)
     wave = np.asfortranarray([wave_left, wave_right])
+    return wave
 
 
 if __name__ == "__main__":
