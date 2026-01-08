@@ -62,7 +62,41 @@ Then set **Mode → Stable Audio** and `stability_server http://127.0.0.1:7860` 
 
 Optional: load community RVC models
 -----------------------------------
-To run the included local server and load a weights.gg archive:
+
+**Method 1: Use the download script (recommended)**
+
+The repository includes a download script that automatically downloads, extracts, and organizes model files:
+
+```bash
+# Download from weights.gg or any direct URL
+python3 download_model.py <URL> <VoiceName>
+
+# Example:
+python3 download_model.py https://weights.gg/models/example.zip MyVoice
+
+# Or use the shell script wrapper:
+./download_model.sh https://weights.gg/models/example.zip MyVoice
+```
+
+The script will:
+- Download the model file (zip or pth)
+- Extract and organize files into `server/models/<VoiceName>/`
+- Rename files to the expected format (`model.pth`, `added.index`)
+
+Then start the server and use the model:
+
+```bash
+cd server
+docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
+  --build-arg RVC_COMMIT=
+docker compose up -d
+```
+
+In the device set **Backend → Local**, `server http://127.0.0.1:8000`, and `rvc_model YourVoice`.
+
+**Method 2: Manual installation**
+
+Alternatively, you can manually download and organize model files:
 
 ```bash
 cd server
