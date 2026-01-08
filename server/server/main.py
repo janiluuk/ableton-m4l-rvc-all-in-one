@@ -4,6 +4,8 @@ from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from typing import Optional
 import tempfile, os, shutil
+import urllib.request
+import json
 from rvc_infer import RVCConverter
 
 app = FastAPI(title="RVC Local Service (Pinned + UVR)", version="0.3.0")
@@ -142,9 +144,6 @@ async def list_applio_models():
     This endpoint proxies the request to the Applio container.
     """
     try:
-        import urllib.request
-        import json
-        
         applio_server = os.environ.get("APPLIO_SERVER", "http://applio:8001")
         req = urllib.request.Request(f"{applio_server}/models")
         
