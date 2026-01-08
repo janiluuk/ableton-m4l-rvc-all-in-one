@@ -122,7 +122,7 @@ class RVCConverter:
         args = ["python", self.paths["applio_cli"], "infer",
                 "--input_path", in_path,
                 "--output_path", out_path]
-        voice = kw.get("applio_model") or kw.get("rvc_model")
+        voice = kw.get("applio_model") if kw.get("applio_model") else kw.get("rvc_model")
         if voice:
             mdir = os.path.join("/models", voice)
             mp = os.path.join(mdir, "model.pth")
@@ -164,7 +164,8 @@ class RVCConverter:
         if normalize and applio_out.endswith(".wav"):
             try:
                 peak_normalize_wav(applio_out, target_db)
-            except Exception:
+            except (ValueError, OSError, RuntimeError):
+                # Normalization failed, continue without it
                 pass
 
         return applio_out
