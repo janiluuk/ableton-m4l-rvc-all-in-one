@@ -2,7 +2,7 @@
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y python3 python3-pip git ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 python3-pip git ffmpeg wget && rm -rf /var/lib/apt/lists/*
 
 # ---- Selectable RVC fork + commit (build args) ----
 ARG RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git
@@ -17,6 +17,11 @@ RUN if [ -f /rvc/requirements.txt ]; then pip3 install --no-cache-dir -r /rvc/re
 
 # Demucs (for UVR-style separation)
 RUN pip3 install --no-cache-dir demucs==4.0.1
+
+# Download UVR model weights
+RUN mkdir -p /uvr5_weights && \
+    wget -q -O /uvr5_weights/2_HP-UVR.pth https://huggingface.co/fastrolling/uvr/resolve/main/Main_Models/2_HP-UVR.pth && \
+    echo "UVR model weights downloaded"
 
 VOLUME ["/models", "/rvc"]
 EXPOSE 8000
