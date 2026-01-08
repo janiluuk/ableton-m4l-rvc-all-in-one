@@ -18,6 +18,31 @@ async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "service": "applio"}
 
+@app.get("/models")
+async def list_models():
+    """List available Applio models in the /models directory."""
+    try:
+        models_dir = "/models"
+        if not os.path.exists(models_dir):
+            return JSONResponse({"models": []})
+        
+        models = []
+        for item in os.listdir(models_dir):
+            item_path = os.path.join(models_dir, item)
+            if os.path.isdir(item_path):
+                # Check if directory contains model.pth file
+                model_pth = os.path.join(item_path, "model.pth")
+                if os.path.exists(model_pth):
+                    model_info = {
+                        "name": item,
+                        "has_index": os.path.exists(os.path.join(item_path, "added.index"))
+                    }
+                    models.append(model_info)
+        
+        return JSONResponse({"models": models})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.post("/convert")
 async def convert_audio(
     file: UploadFile = File(...),

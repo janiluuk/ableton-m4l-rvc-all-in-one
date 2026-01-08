@@ -4,15 +4,14 @@ Tests for Applio integration
 import pytest
 import os
 
-# Import will work via pytest.ini pythonpath configuration
-from rvc_infer import RVCConverter
-
 class TestApplioIntegration:
     """Test Applio voice conversion integration"""
     
     @pytest.fixture
     def converter(self):
         """Create RVCConverter instance"""
+        # Import here to avoid collection errors
+        from rvc_infer import RVCConverter
         return RVCConverter()
     
     def test_applio_server_url_from_env(self, converter):
@@ -22,6 +21,7 @@ class TestApplioIntegration:
         
         # Should use environment variable if set
         os.environ["APPLIO_SERVER"] = "http://custom:9999"
+        from rvc_infer import RVCConverter
         converter2 = RVCConverter()
         assert converter2.applio_server == "http://custom:9999"
         del os.environ["APPLIO_SERVER"]
@@ -29,6 +29,7 @@ class TestApplioIntegration:
     def test_convert_returns_tuple(self):
         """Test that convert method signature returns a tuple"""
         # This tests the interface without requiring actual conversion
+        from rvc_infer import RVCConverter
         converter = RVCConverter()
         
         # Check that the method exists
@@ -109,6 +110,33 @@ class TestApplioServerStructure:
                     content = f.read()
                     assert 'applio:' in content, f"{compose_file} should include applio service"
                     assert '8001' in content, f"{compose_file} should expose port 8001 for Applio"
+
+class TestModelListingAPI:
+    """Test model listing API endpoints"""
+    
+    def test_models_endpoint_in_main(self):
+        """Test that /models endpoint exists in main.py"""
+        main_path = os.path.join(os.path.dirname(__file__), '../server/server/main.py')
+        with open(main_path, 'r') as f:
+            content = f.read()
+            assert '@app.get("/models")' in content, "Should have /models endpoint"
+            assert 'list_models' in content, "Should have list_models function"
+    
+    def test_models_endpoint_in_applio_server(self):
+        """Test that /models endpoint exists in applio_server.py"""
+        applio_path = os.path.join(os.path.dirname(__file__), '../applio/applio_server.py')
+        with open(applio_path, 'r') as f:
+            content = f.read()
+            assert '@app.get("/models")' in content, "Should have /models endpoint"
+            assert 'list_models' in content, "Should have list_models function"
+    
+    def test_applio_models_proxy_endpoint(self):
+        """Test that /applio/models proxy endpoint exists in main.py"""
+        main_path = os.path.join(os.path.dirname(__file__), '../server/server/main.py')
+        with open(main_path, 'r') as f:
+            content = f.read()
+            assert '@app.get("/applio/models")' in content, "Should have /applio/models endpoint"
+            assert 'list_applio_models' in content, "Should have list_applio_models function"
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

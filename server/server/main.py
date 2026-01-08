@@ -110,5 +110,49 @@ async def uvr_audio(
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
+@app.get("/models")
+async def list_models():
+    """List available RVC models in the /models directory."""
+    try:
+        models_dir = "/models"
+        if not os.path.exists(models_dir):
+            return JSONResponse({"models": []})
+        
+        models = []
+        for item in os.listdir(models_dir):
+            item_path = os.path.join(models_dir, item)
+            if os.path.isdir(item_path):
+                # Check if directory contains model.pth file
+                model_pth = os.path.join(item_path, "model.pth")
+                if os.path.exists(model_pth):
+                    model_info = {
+                        "name": item,
+                        "has_index": os.path.exists(os.path.join(item_path, "added.index"))
+                    }
+                    models.append(model_info)
+        
+        return JSONResponse({"models": models})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.get("/applio/models")
+async def list_applio_models():
+    """
+    List available Applio models by querying the Applio service.
+    This endpoint proxies the request to the Applio container.
+    """
+    try:
+        import urllib.request
+        import json
+        
+        applio_server = os.environ.get("APPLIO_SERVER", "http://applio:8001")
+        req = urllib.request.Request(f"{applio_server}/models")
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode())
+            return JSONResponse(data)
+    except Exception as e:
+        return JSONResponse({"error": f"Failed to fetch Applio models: {str(e)}"}, status_code=500)
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000)

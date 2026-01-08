@@ -151,6 +151,22 @@ This starts both the RVC server (port 8000) and Applio service (port 8001). They
 
 **Note:** Separation is automatically enabled when Applio processing is requested.
 
+**API Endpoints:**
+- `GET http://localhost:8000/models` - List available RVC models
+- `GET http://localhost:8000/applio/models` - List available Applio models (proxies to Applio service)
+- `GET http://localhost:8001/models` - List models directly from Applio service
+- `GET http://localhost:8001/health` - Health check for Applio service
+
+Example API response:
+```json
+{
+  "models": [
+    {"name": "MyVoiceModel", "has_index": true},
+    {"name": "AnotherModel", "has_index": false}
+  ]
+}
+```
+
 Optional: one-compose setup for RVC + Applio + Stable Audio
 ------------------------------------------------------------
 Use the provided example to boot all services with NVIDIA GPU access:
