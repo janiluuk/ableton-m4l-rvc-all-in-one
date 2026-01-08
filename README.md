@@ -125,6 +125,28 @@ DEMUCS_MODEL=htdemucs_mmi docker compose up -d
 
 Set `server http://127.0.0.1:8000` in the device. Adjust `uvr_model`, `uvr_shifts`, or `uvr_segment` before pressing **Process**.
 
+**Optional: Pre-download UVR/Demucs models**
+
+Demucs models are automatically downloaded on first use, but you can pre-download them for offline use or faster startup:
+
+```bash
+# List available models
+python3 download_uvr_model.py --list
+
+# Download a specific model (e.g., htdemucs)
+python3 download_uvr_model.py htdemucs
+
+# Or use the shell script wrapper
+./download_uvr_model.sh htdemucs
+```
+
+Available models include:
+- `htdemucs` (default, recommended) - 4-stem separation: vocals, drums, bass, other
+- `htdemucs_ft` - Fine-tuned version
+- `htdemucs_6s` - 6-stem separation
+- `htdemucs_mmi` - Special version
+- `mdx`, `mdx_extra`, `mdx_q`, `mdx_extra_q` - MDX models
+
 Optional: one-compose setup for RVC + Stable Audio
 --------------------------------------------------
 Use the provided example to boot both local services with NVIDIA GPU access:
