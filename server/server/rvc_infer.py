@@ -64,6 +64,7 @@ class RVCConverter:
         self.paths = {
             "webui_cli": "/rvc/infer_cli.py",
             "mangio": "/rvc/inference.py",
+            "applio_cli": "/applio/core.py",
         }
 
     def _webui_call(self, in_path, out_path, **kw):
@@ -116,6 +117,58 @@ class RVCConverter:
             args += ["--f0_method", str(kw["pitch_detection_algorithm"])]
         return args
 
+    def _applio_call(self, in_path, out_path, **kw):
+        """Build Applio CLI command."""
+        args = ["python", self.paths["applio_cli"], "infer",
+                "--input_path", in_path,
+                "--output_path", out_path]
+        voice = kw.get("applio_model") or kw.get("rvc_model")
+        if voice:
+            mdir = os.path.join("/models", voice)
+            mp = os.path.join(mdir, "model.pth")
+            ix = os.path.join(mdir, "added.index")
+            if os.path.exists(mp):
+                args += ["--pth_path", mp]
+            if os.path.exists(ix):
+                args += ["--index_path", ix]
+        if kw.get("pitch_change_all") is not None:
+            args += ["--pitch", str(int(kw["pitch_change_all"]))]
+        if kw.get("index_rate") is not None:
+            args += ["--index_rate", str(kw["index_rate"])]
+        if kw.get("filter_radius") is not None:
+            args += ["--filter_radius", str(kw["filter_radius"])]
+        if kw.get("rms_mix_rate") is not None:
+            args += ["--rms_mix_rate", str(kw["rms_mix_rate"])]
+        if kw.get("pitch_detection_algorithm"):
+            args += ["--f0_method", str(kw["pitch_detection_algorithm"])]
+        return args
+
+    def _process_with_applio(self, vocal_path, **kw):
+        """Process separated vocals through Applio and return the output path."""
+        if not os.path.exists(self.paths["applio_cli"]):
+            raise RuntimeError("Applio CLI not found at /applio/core.py")
+
+        output_format = kw.get("output_format", "wav")
+        normalize = kw.get("normalize", True)
+        target_db = kw.get("target_db", -0.1)
+
+        tmp_dir = tempfile.mkdtemp()
+        applio_out = os.path.join(tmp_dir, "applio_out." + ("wav" if output_format == "wav" else "mp3"))
+
+        cmd = self._applio_call(vocal_path, applio_out, **kw)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        if proc.returncode != 0 or not os.path.exists(applio_out):
+            raise RuntimeError(f"Applio processing failed: {proc.stderr or proc.stdout}")
+
+        if normalize and applio_out.endswith(".wav"):
+            try:
+                peak_normalize_wav(applio_out, target_db)
+            except Exception:
+                pass
+
+        return applio_out
+
     def convert(self, **kw):
         in_path = kw["in_path"]
         output_format = kw.get("output_format","wav")
@@ -123,8 +176,10 @@ class RVCConverter:
         target_db = kw.get("target_db", -0.1)
 
         work_input = in_path
+        separated_vocal_path = None
         if kw.get("separate"):
             work_input, _ = demucs_separate(in_path, stem=kw.get("stem","vocals"), model=kw.get("demucs_model"))
+            separated_vocal_path = work_input
 
         tmp_dir = tempfile.mkdtemp()
         out_path = os.path.join(tmp_dir, "rvc_out." + ("wav" if output_format=="wav" else "mp3"))
@@ -145,7 +200,13 @@ class RVCConverter:
                 peak_normalize_wav(out_path, target_db)
             except Exception:
                 pass
-        return out_path
+
+        # Process through Applio if enabled and vocal was separated
+        applio_out_path = None
+        if kw.get("applio_enabled") and separated_vocal_path and kw.get("applio_model"):
+            applio_out_path = self._process_with_applio(separated_vocal_path, **kw)
+
+        return out_path, applio_out_path
 
     def uvr(self, in_path, model=None, shifts=None, segment=None):
         """Separate all stems with Demucs and return a zip archive path."""

@@ -48,6 +48,9 @@ let state = {
   // Local extras
   separate: false,
   stem: 'vocals',
+  // Applio params
+  applio_enabled: false,
+  applio_model: null,
   // Normalization
   normalize: true,
   target_db: -0.1
@@ -86,7 +89,7 @@ Max.addHandler('uvr_model', v => {
   status(`uvr_model=${state.uvr_model}`);
 });
 
-['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem'].forEach(k=>{
+['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem','applio_model'].forEach(k=>{
   Max.addHandler(k, v => { state[k] = (v==null?'':String(v)).trim(); status(`${k}=${state[k]}`); });
 });
 
@@ -103,6 +106,7 @@ Max.addHandler('uvr_model', v => {
 
 Max.addHandler('separate', v => { state.separate = !!Number(v) || v === true; status(`separate=${state.separate}`); });
 Max.addHandler('normalize', v => { state.normalize = !!Number(v) || v === true; status(`normalize=${state.normalize}`); });
+Max.addHandler('applio_enabled', v => { state.applio_enabled = !!Number(v) || v === true; status(`applio_enabled=${state.applio_enabled}`); });
 
 Max.addHandler('process', async () => {
   try {
@@ -207,7 +211,8 @@ async function runLocal() {
   const map = ['rvc_model','output_format','index_rate','filter_radius','rms_mix_rate',
                'pitch_detection_algorithm','crepe_hop_length','protect',
                'main_vocals_volume_change','backup_vocals_volume_change','instrumental_volume_change',
-               'pitch_change_all','normalize','target_db','separate','stem'];
+               'pitch_change_all','normalize','target_db','separate','stem',
+               'applio_enabled','applio_model'];
   for (const k of map) form.append(k, String(state[k]));
   if (state.uvr_model) form.append('demucs_model', state.uvr_model);
   status(`Uploading to ${state.server}…`);
@@ -216,17 +221,46 @@ async function runLocal() {
     const txt = await res.text();
     throw new Error(`Server error: ${res.status} ${txt}`);
   }
+  
   const dir = path.join(os.homedir(), 'Music', 'RVC');
   await fs.mkdir(dir, { recursive: true });
+  
   const ct = res.headers.get('content-type') || '';
-  const ext = ct.includes('mpeg') ? 'mp3' : 'wav';
-  const outPath = path.join(dir, `rvc_${Date.now()}.${ext}`);
-  const file = await fs.open(outPath, 'w');
-  await res.body.pipeTo(file.createWriteStream());
-  await file.close();
+  
+  // Check if response is a zip file (Applio enabled)
+  if (ct.includes('application/zip')) {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'rvc-applio-'));
+    const zipPath = path.join(tmpDir, 'outputs.zip');
+    const zipFile = await fs.open(zipPath, 'w');
+    await res.body.pipeTo(zipFile.createWriteStream());
+    await zipFile.close();
+
+    const outDir = path.join(dir, `rvc_applio_${Date.now()}`);
+    await fs.mkdir(outDir, { recursive: true });
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(outDir, true);
+
+    const outputs = await listAudioFiles(outDir);
+    if (!outputs.length) throw new Error('Zip contained no audio files');
+    
+    for (const output of outputs) {
+      Max.outlet(['done', output]);
+      status(`Output: ${path.basename(output)}`);
+    }
+    status(`Both RVC and Applio outputs ready in ${outDir}`);
+  } else {
+    // Single file response (no Applio)
+    const ext = ct.includes('mpeg') ? 'mp3' : 'wav';
+    const outPath = path.join(dir, `rvc_${Date.now()}.${ext}`);
+    const file = await fs.open(outPath, 'w');
+    await res.body.pipeTo(file.createWriteStream());
+    await file.close();
+    Max.outlet(['done', outPath]);
+    status(`Output: ${outPath}`);
+  }
+  
   progress(100);
   status('Done');
-  Max.outlet(['done', outPath]);
 }
 
 async function runUvr() {

@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from typing import Optional
-import tempfile, os
+import tempfile, os, shutil
 from rvc_infer import RVCConverter
 
 app = FastAPI(title="RVC Local Service (Pinned + UVR)", version="0.3.0")
@@ -24,6 +24,9 @@ async def convert_audio(
     separate: Optional[bool] = Form(False),
     stem: Optional[str] = Form("vocals"),  # 'vocals' or 'other'
     demucs_model: Optional[str] = Form(None),
+    # Applio processing
+    applio_enabled: Optional[bool] = Form(False),
+    applio_model: Optional[str] = Form(None),
     # Post-process
     normalize: Optional[bool] = Form(True),
     target_db: Optional[float] = Form(-0.1)
@@ -34,7 +37,7 @@ async def convert_audio(
             tmp_in.write(data)
             in_path = tmp_in.name
 
-        out_path = converter.convert(
+        result = converter.convert(
             in_path=in_path,
             rvc_model=rvc_model,
             output_format=output_format,
@@ -46,9 +49,33 @@ async def convert_audio(
             separate=separate,
             stem=stem,
             demucs_model=demucs_model,
+            applio_enabled=applio_enabled,
+            applio_model=applio_model,
             normalize=normalize,
             target_db=target_db
         )
+        
+        # Handle tuple return (main output + optional Applio output)
+        if isinstance(result, tuple):
+            out_path, applio_out_path = result
+        else:
+            out_path = result
+            applio_out_path = None
+            
+        # If Applio output exists, create a zip with both files
+        if applio_out_path:
+            zip_dir = tempfile.mkdtemp()
+            # Copy files with descriptive names
+            rvc_dest = os.path.join(zip_dir, f"rvc_output.{output_format}")
+            applio_dest = os.path.join(zip_dir, f"applio_output.{output_format}")
+            shutil.copy2(out_path, rvc_dest)
+            shutil.copy2(applio_out_path, applio_dest)
+            
+            # Create zip
+            base = tempfile.mktemp()
+            zip_path = shutil.make_archive(base, 'zip', zip_dir)
+            return FileResponse(zip_path, filename="rvc_applio_outputs.zip", media_type="application/zip")
+        
         return FileResponse(out_path, filename=os.path.basename(out_path), media_type="audio/wav" if out_path.endswith(".wav") else "audio/mpeg")
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
