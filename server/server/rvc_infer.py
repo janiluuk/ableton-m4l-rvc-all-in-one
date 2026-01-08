@@ -334,17 +334,21 @@ class RVCConverter:
             
             separator.separate(in_path, vocal_path=vocal_path, instrument_path=instrument_path)
             
-            # Create zip archive
-            base = tempfile.mktemp()
-            archive_path = shutil.make_archive(base, 'zip', tmp_out)
+            # Create zip archive with secure temporary file
+            fd, temp_path = tempfile.mkstemp(suffix='', prefix='uvr_archive_')
+            os.close(fd)
+            os.remove(temp_path)
+            archive_path = shutil.make_archive(temp_path, 'zip', tmp_out)
             if not os.path.exists(archive_path):
                 raise FileNotFoundError("Failed to create UVR zip archive")
             return archive_path
         else:
             # Use Demucs (original behavior)
             out_dir = demucs_run(in_path, model=model, shifts=shifts, segment=segment)
-            base = tempfile.mktemp()
-            archive_path = shutil.make_archive(base, 'zip', out_dir)
+            fd, temp_path = tempfile.mkstemp(suffix='', prefix='demucs_archive_')
+            os.close(fd)
+            os.remove(temp_path)
+            archive_path = shutil.make_archive(temp_path, 'zip', out_dir)
             if not os.path.exists(archive_path):
                 raise FileNotFoundError("Failed to create UVR zip archive")
             return archive_path
