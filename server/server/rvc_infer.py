@@ -1,5 +1,8 @@
 # server/rvc_infer.py
 import os, tempfile, subprocess, contextlib, wave, numpy as np, shutil
+import torch, warnings, librosa, importlib, hashlib, math
+from scipy.io import wavfile
+warnings.filterwarnings("ignore")
 
 def peak_normalize_wav(path, target_db=-0.1):
     with contextlib.closing(wave.open(path, 'rb')) as wf:
@@ -58,6 +61,162 @@ def demucs_separate(in_path, stem='vocals', model=None, shifts=None, segment=Non
     if not os.path.exists(stem_path):
         raise FileNotFoundError(f"Demucs stem not found: {stem_path}")
     return stem_path, out_dir
+
+
+class UVRSeparator:
+    """Ultimate Vocal Remover separator using uvr5_pack library."""
+    
+    def __init__(self, model_path=None, device=None, is_half=True):
+        from uvr5_pack.lib_v5 import spec_utils
+        from uvr5_pack.utils import _get_name_params, inference
+        from uvr5_pack.lib_v5.model_param_init import ModelParameters
+        
+        self.model_path = model_path or os.environ.get("UVR_MODEL_PATH", "/uvr5_weights/2_HP-UVR.pth")
+        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        self.is_half = is_half and self.device == 'cuda'
+        
+        self.data = {
+            'postprocess': False,
+            'tta': False,
+            'window_size': 512,
+            'agg': 10,
+            'high_end_process': 'mirroring',
+        }
+        
+        nn_arch_sizes = [31191, 33966, 61968, 123821, 123812, 537238]
+        model_size = math.ceil(os.stat(self.model_path).st_size / 1024)
+        nn_architecture = '{}KB'.format(min(nn_arch_sizes, key=lambda x: abs(x - model_size)))
+        
+        nets = importlib.import_module(
+            'uvr5_pack.lib_v5.nets' + f'_{nn_architecture}'.replace('_{}KB'.format(nn_arch_sizes[0]), ''),
+            package=None
+        )
+        
+        model_hash = hashlib.md5(open(self.model_path, 'rb').read()).hexdigest()
+        param_name, model_params_d = _get_name_params(self.model_path, model_hash)
+        
+        mp = ModelParameters(model_params_d)
+        model = nets.CascadedASPPNet(mp.param['bins'] * 2)
+        cpk = torch.load(self.model_path, map_location='cpu')
+        model.load_state_dict(cpk)
+        model.eval()
+        
+        if self.is_half:
+            model = model.half().to(self.device)
+        else:
+            model = model.to(self.device)
+        
+        self.mp = mp
+        self.model = model
+    
+    def separate(self, music_file, vocal_path=None, instrument_path=None):
+        """Separate audio into vocals and instruments."""
+        from uvr5_pack.lib_v5 import spec_utils
+        from uvr5_pack.utils import inference
+        
+        if vocal_path is None and instrument_path is None:
+            raise ValueError("At least one output path must be specified")
+        
+        # Create output directories
+        if vocal_path:
+            os.makedirs(os.path.dirname(vocal_path), exist_ok=True)
+        if instrument_path:
+            os.makedirs(os.path.dirname(instrument_path), exist_ok=True)
+        
+        X_wave, X_spec_s = {}, {}
+        bands_n = len(self.mp.param['band'])
+        
+        for d in range(bands_n, 0, -1):
+            bp = self.mp.param['band'][d]
+            if d == bands_n:
+                X_wave[d], _ = librosa.core.load(
+                    music_file, bp['sr'], False, dtype=np.float32, res_type=bp['res_type']
+                )
+                if X_wave[d].ndim == 1:
+                    X_wave[d] = np.asfortranarray([X_wave[d], X_wave[d]])
+            else:
+                X_wave[d] = librosa.core.resample(
+                    X_wave[d + 1], self.mp.param['band'][d + 1]['sr'], bp['sr'], res_type=bp['res_type']
+                )
+            
+            X_spec_s[d] = spec_utils.wave_to_spectrogram_mt(
+                X_wave[d], bp['hl'], bp['n_fft'], self.mp.param['mid_side'],
+                self.mp.param['mid_side_b2'], self.mp.param['reverse']
+            )
+            
+            if d == bands_n and self.data['high_end_process'] != 'none':
+                input_high_end_h = (bp['n_fft'] // 2 - bp['crop_stop']) + (
+                    self.mp.param['pre_filter_stop'] - self.mp.param['pre_filter_start']
+                )
+                input_high_end = X_spec_s[d][:, bp['n_fft'] // 2 - input_high_end_h:bp['n_fft'] // 2, :]
+        
+        X_spec_m = spec_utils.combine_spectrograms(X_spec_s, self.mp)
+        aggresive_set = float(self.data['agg'] / 100)
+        aggressiveness = {'value': aggresive_set, 'split_bin': self.mp.param['band'][1]['crop_stop']}
+        
+        with torch.no_grad():
+            pred, X_mag, X_phase = inference(X_spec_m, self.device, self.model, aggressiveness, self.data)
+        
+        if self.data['postprocess']:
+            pred_inv = np.clip(X_mag - pred, 0, np.inf)
+            pred = spec_utils.mask_silence(pred, pred_inv)
+        
+        y_spec_m = pred * X_phase
+        v_spec_m = X_spec_m - y_spec_m
+        
+        if instrument_path:
+            if self.data['high_end_process'].startswith('mirroring'):
+                input_high_end_ = spec_utils.mirroring(
+                    self.data['high_end_process'], y_spec_m, input_high_end, self.mp
+                )
+                wav_instrument = spec_utils.cmb_spectrogram_to_wave(
+                    y_spec_m, self.mp, input_high_end_h, input_high_end_
+                )
+            else:
+                wav_instrument = spec_utils.cmb_spectrogram_to_wave(y_spec_m, self.mp)
+            
+            wavfile.write(
+                instrument_path, self.mp.param['sr'],
+                (np.array(wav_instrument) * 32768).astype("int16")
+            )
+        
+        if vocal_path:
+            if self.data['high_end_process'].startswith('mirroring'):
+                input_high_end_ = spec_utils.mirroring(
+                    self.data['high_end_process'], v_spec_m, input_high_end, self.mp
+                )
+                wav_vocals = spec_utils.cmb_spectrogram_to_wave(
+                    v_spec_m, self.mp, input_high_end_h, input_high_end_
+                )
+            else:
+                wav_vocals = spec_utils.cmb_spectrogram_to_wave(v_spec_m, self.mp)
+            
+            wavfile.write(
+                vocal_path, self.mp.param['sr'],
+                (np.array(wav_vocals) * 32768).astype("int16")
+            )
+        
+        return vocal_path, instrument_path
+
+
+def uvr_separate(in_path, stem='vocals', model_path=None):
+    """Run UVR separation and return path to requested stem wav."""
+    tmp_out = tempfile.mkdtemp()
+    separator = UVRSeparator(model_path=model_path)
+    
+    vocal_path = os.path.join(tmp_out, "vocals.wav")
+    instrument_path = os.path.join(tmp_out, "instrument.wav")
+    
+    separator.separate(in_path, vocal_path=vocal_path, instrument_path=instrument_path)
+    
+    if stem == 'vocals':
+        if not os.path.exists(vocal_path):
+            raise FileNotFoundError(f"UVR vocal stem not found: {vocal_path}")
+        return vocal_path, tmp_out
+    else:
+        if not os.path.exists(instrument_path):
+            raise FileNotFoundError(f"UVR instrument stem not found: {instrument_path}")
+        return instrument_path, tmp_out
 
 class RVCConverter:
     def __init__(self):
@@ -124,7 +283,14 @@ class RVCConverter:
 
         work_input = in_path
         if kw.get("separate"):
-            work_input, _ = demucs_separate(in_path, stem=kw.get("stem","vocals"), model=kw.get("demucs_model"))
+            separator = kw.get("separator", "demucs")  # Default to demucs for backward compatibility
+            stem = kw.get("stem", "vocals")
+            
+            if separator == "uvr":
+                model_path = kw.get("uvr_model_path")
+                work_input, _ = uvr_separate(in_path, stem=stem, model_path=model_path)
+            else:
+                work_input, _ = demucs_separate(in_path, stem=stem, model=kw.get("demucs_model"))
 
         tmp_dir = tempfile.mkdtemp()
         out_path = os.path.join(tmp_dir, "rvc_out." + ("wav" if output_format=="wav" else "mp3"))
@@ -147,11 +313,38 @@ class RVCConverter:
                 pass
         return out_path
 
-    def uvr(self, in_path, model=None, shifts=None, segment=None):
-        """Separate all stems with Demucs and return a zip archive path."""
-        out_dir = demucs_run(in_path, model=model, shifts=shifts, segment=segment)
-        base = tempfile.mktemp()
-        archive_path = shutil.make_archive(base, 'zip', out_dir)
-        if not os.path.exists(archive_path):
-            raise FileNotFoundError("Failed to create UVR zip archive")
-        return archive_path
+    def uvr(self, in_path, model=None, shifts=None, segment=None, use_uvr=False, uvr_model_path=None):
+        """Separate all stems and return a zip archive path.
+        
+        Args:
+            in_path: Input audio file path
+            model: Demucs model name (for backward compatibility)
+            shifts: Demucs shifts parameter (for backward compatibility)
+            segment: Demucs segment parameter (for backward compatibility)
+            use_uvr: If True, use UVR separator instead of Demucs
+            uvr_model_path: Path to UVR model weights
+        """
+        if use_uvr:
+            # Use UVR separation
+            tmp_out = tempfile.mkdtemp()
+            separator = UVRSeparator(model_path=uvr_model_path)
+            
+            vocal_path = os.path.join(tmp_out, "vocals.wav")
+            instrument_path = os.path.join(tmp_out, "instrument.wav")
+            
+            separator.separate(in_path, vocal_path=vocal_path, instrument_path=instrument_path)
+            
+            # Create zip archive
+            base = tempfile.mktemp()
+            archive_path = shutil.make_archive(base, 'zip', tmp_out)
+            if not os.path.exists(archive_path):
+                raise FileNotFoundError("Failed to create UVR zip archive")
+            return archive_path
+        else:
+            # Use Demucs (original behavior)
+            out_dir = demucs_run(in_path, model=model, shifts=shifts, segment=segment)
+            base = tempfile.mktemp()
+            archive_path = shutil.make_archive(base, 'zip', out_dir)
+            if not os.path.exists(archive_path):
+                raise FileNotFoundError("Failed to create UVR zip archive")
+            return archive_path
