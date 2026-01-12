@@ -10,18 +10,17 @@ You can run everything locally with Docker or use the Replicate cloud backend. T
 
 What’s in the repo
 - `device_unified/` → the Max device (`RVC_Unified_Device.maxpat`), its Node script, and npm deps.
-- `server_local_pinned_uvr/` → the FastAPI + Docker server for local processing.
+- `server/` → the FastAPI + Docker server for local processing.
 
 Fast start: local GPU (recommended)
 -----------------------------------
 1. Install Docker with GPU support (NVIDIA drivers + Docker Engine).
-2. Open a terminal and run:
+2. Open a terminal in the repository root and run:
    ```bash
-   cd server_local_pinned_uvr
-   docker compose build      --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git --build-arg RVC_COMMIT=
-   docker compose up -d
+   docker compose -f docker-compose.rvc.yml build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git --build-arg RVC_COMMIT=
+   docker compose -f docker-compose.rvc.yml up -d
    ```
-3. Put your model files in `server_local_pinned_uvr/models/<VOICE>/`:
+3. Put your model files in `server/models/<VOICE>/`:
    - `model.pth`
    - `added.index` (optional)
 4. In Ableton Live, drop the Max device onto a track and set:
@@ -50,13 +49,10 @@ Extra quality-of-life features
 
 Optional: local Stable Audio in one command
 -------------------------------------------
-If you want to run Stable Audio locally, start the official container (uses GPU if available):
+If you want to run Stable Audio locally, use the dedicated compose file:
 
 ```bash
-  docker run --rm -p 7860:7860 --gpus all \
-  -v $(pwd)/stable-audio-cache:/root/.cache/stabilityai \
-  ghcr.io/stability-ai/stable-audio-tools:latest \
-  stable-audio-api --host 0.0.0.0 --port 7860
+docker compose -f docker-compose.stable-audio.yml up -d
 ```
 
 Then set **Mode → Stable Audio** and `stability_server http://127.0.0.1:7860` in the device.
@@ -84,13 +80,12 @@ The script will:
 - Extract and organize files into `server/models/<VoiceName>/`
 - Rename files to the expected format (`model.pth`, `added.index`)
 
-Then start the server and use the model:
+Then start the RVC server:
 
 ```bash
-cd server
-docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
+docker compose -f docker-compose.rvc.yml build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
   --build-arg RVC_COMMIT=
-docker compose up -d
+docker compose -f docker-compose.rvc.yml up -d
 ```
 
 In the device set **Backend → Local**, `server http://127.0.0.1:8000`, and `rvc_model YourVoice`.
@@ -100,28 +95,28 @@ In the device set **Backend → Local**, `server http://127.0.0.1:8000`, and `rv
 Alternatively, you can manually download and organize model files:
 
 ```bash
-cd server
-docker compose build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
+# Start the RVC server first
+docker compose -f docker-compose.rvc.yml build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git \
   --build-arg RVC_COMMIT=
-docker compose up -d
+docker compose -f docker-compose.rvc.yml up -d
 
-unzip ~/Downloads/your_weightsgg_voice.zip -d models/YourVoice
-mv models/YourVoice/*.pth models/YourVoice/model.pth
-mv models/YourVoice/*.index models/YourVoice/added.index   # optional
+# Then manually organize your models
+unzip ~/Downloads/your_weightsgg_voice.zip -d server/models/YourVoice
+mv server/models/YourVoice/*.pth server/models/YourVoice/model.pth
+mv server/models/YourVoice/*.index server/models/YourVoice/added.index   # optional
 ```
 
 In the device set **Backend → Local**, `server http://127.0.0.1:8000`, and `rvc_model YourVoice`.
 
 Optional: UVR/Ultimate Vocal Remover endpoint
 ---------------------------------------------
-The same local server exposes `/uvr` for Demucs/UVR separation. Launch it and point the device to it when **Mode → UVR** is selected:
+The RVC server exposes `/uvr` for Demucs/UVR separation. Launch it and point the device to it when **Mode → UVR** is selected:
 
 ```bash
-cd server
-docker compose build
-docker compose up -d
+docker compose -f docker-compose.rvc.yml build
+docker compose -f docker-compose.rvc.yml up -d
 # Optional: pick a specific Demucs model (e.g., htdemucs_mmi)
-DEMUCS_MODEL=htdemucs_mmi docker compose up -d
+DEMUCS_MODEL=htdemucs_mmi docker compose -f docker-compose.rvc.yml up -d
 ```
 
 Set `server http://127.0.0.1:8000` in the device. Adjust `uvr_model`, `uvr_shifts`, or `uvr_segment` before pressing **Process**.
@@ -132,12 +127,11 @@ To use Applio for additional voice processing after vocal separation:
 
 **With Docker Compose (Recommended):**
 
-The Applio service runs in its own container and is automatically configured when you use docker-compose:
+The Applio service runs in its own container and is automatically configured when you use the RVC+Applio compose file:
 
 ```bash
-cd server
-docker compose build
-docker compose up -d
+docker compose -f docker-compose.rvc-applio.yml build
+docker compose -f docker-compose.rvc-applio.yml up -d
 ```
 
 This starts both the RVC server (port 8000) and Applio service (port 8001). They share the same `/models` volume.
@@ -167,10 +161,8 @@ Example API response:
 }
 ```
 
-Optional: one-compose setup for RVC + Applio + Stable Audio
-------------------------------------------------------------
-Use the provided example to boot all services with NVIDIA GPU access:
-**Optional: Pre-download UVR/Demucs models**
+Optional: Pre-download UVR/Demucs models
+-----------------------------------------
 
 Demucs models are automatically downloaded on first use, but you can pre-download them for offline use or faster startup:
 
@@ -192,18 +184,31 @@ Available models include:
 - `htdemucs_mmi` - Special version
 - `mdx`, `mdx_extra`, `mdx_q`, `mdx_extra_q` - MDX models
 
-Optional: one-compose setup for RVC + Stable Audio
---------------------------------------------------
-Use the provided example to boot both local services with NVIDIA GPU access:
+Optional: run all services together (RVC + Applio + Stable Audio)
+------------------------------------------------------------------
+To run all services at once with NVIDIA GPU access, use the all-in-one compose file:
+
+```bash
+docker compose -f docker-compose.all.yml build
+docker compose -f docker-compose.all.yml up -d
+```
+
+This starts:
+- RVC/UVR server at `http://localhost:8000` (mounts `server/models`)
+- Applio service at `http://localhost:8001` (shares the same models directory)
+- Stable Audio at `http://localhost:7860` (cache under `./stable-audio-cache`)
+
+**Alternative:** Copy and customize the example file:
 
 ```bash
 cp docker-compose.example.yml docker-compose.yml
+# Edit docker-compose.yml to comment out services you don't need
 docker compose build
 docker compose up -d
 ```
 
-- RVC/UVR server runs at `http://localhost:8000` and mounts `server/models`.
-- Applio service runs at `http://localhost:8001` and shares the same models directory.
-- Stable Audio runs at `http://localhost:7860` with cache under `./stable-audio-cache`.
-
-Comment out any service in `docker-compose.yml` if you don't need it.
+**Available compose files:**
+- `docker-compose.rvc.yml` - RVC only (for voice conversion and UVR)
+- `docker-compose.rvc-applio.yml` - RVC + Applio integration
+- `docker-compose.stable-audio.yml` - Stable Audio only
+- `docker-compose.all.yml` - All services together
