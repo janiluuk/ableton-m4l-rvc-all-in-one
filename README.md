@@ -212,3 +212,5 @@ docker compose up -d
 - `docker-compose.rvc-applio.yml` - RVC + Applio integration
 - `docker-compose.stable-audio.yml` - Stable Audio only
 - `docker-compose.all.yml` - All services together
+
+**Note:** The root-level compose files use modern Docker Compose Specification syntax. The `server/docker-compose.yml` is maintained for backward compatibility and uses legacy syntax. Both work identically but the root-level files are recommended for new deployments.
