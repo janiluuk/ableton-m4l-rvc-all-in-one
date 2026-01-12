@@ -109,8 +109,8 @@ async def uvr_audio(
         # Apply sensible defaults
         model = model or 'htdemucs'
         shifts = shifts if shifts is not None else 1
-        # segment remains None (Demucs default) if not provided or 0
-        if segment == 0:
+        # segment remains None (Demucs default) if not provided or 0/0.0
+        if segment is not None and segment == 0:
             segment = None
 
         zip_path = converter.uvr(

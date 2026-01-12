@@ -300,7 +300,7 @@ class TestUVREndpoint:
             # Verify defaults are applied
             assert call_args['model'] == 'htdemucs'
             assert call_args['shifts'] == 1
-            assert call_args['segment'] is None  # 0 should be converted to None
+            assert call_args['segment'] is None
         finally:
             if os.path.exists(mock_zip.name):
                 os.remove(mock_zip.name)
