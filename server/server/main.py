@@ -93,12 +93,25 @@ async def uvr_audio(
     use_uvr: Optional[bool] = Form(False),
     uvr_model_path: Optional[str] = Form(None)
 ):
-    """Expose a Demucs/UVR-style separation endpoint that returns all stems as a zip."""
+    """Expose a Demucs/UVR-style separation endpoint that returns all stems as a zip.
+    
+    Defaults:
+        model: 'htdemucs' - Default Demucs model (4-stem separation)
+        shifts: 1 - Number of random shifts for equivariant stabilization
+        segment: None - Segment size in seconds (uses Demucs default if not specified)
+    """
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1] or ".wav") as tmp_in:
             data = await file.read()
             tmp_in.write(data)
             in_path = tmp_in.name
+
+        # Apply sensible defaults
+        model = model or 'htdemucs'
+        shifts = shifts if shifts is not None else 1
+        # segment remains None (Demucs default) if not provided or 0
+        if segment == 0:
+            segment = None
 
         zip_path = converter.uvr(
             in_path=in_path,

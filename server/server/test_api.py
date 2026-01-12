@@ -14,6 +14,9 @@ from unittest.mock import Mock, patch, MagicMock
 sys.modules['torch'] = MagicMock()
 sys.modules['librosa'] = MagicMock()
 sys.modules['librosa.core'] = MagicMock()
+sys.modules['scipy'] = MagicMock()
+sys.modules['scipy.io'] = MagicMock()
+sys.modules['scipy.io.wavfile'] = MagicMock()
 sys.modules['uvr5_pack'] = MagicMock()
 sys.modules['uvr5_pack.lib_v5'] = MagicMock()
 sys.modules['uvr5_pack.lib_v5.spec_utils'] = MagicMock()
@@ -273,6 +276,57 @@ class TestUVREndpoint:
             call_args = mock_uvr.call_args[1]
             assert call_args['use_uvr'] is True
             assert call_args['uvr_model_path'] == '/custom/uvr_model.pth'
+        finally:
+            if os.path.exists(mock_zip.name):
+                os.remove(mock_zip.name)
+    
+    @patch.object(RVCConverter, 'uvr')
+    def test_uvr_with_defaults(self, mock_uvr, client, sample_audio_file):
+        """Test UVR endpoint applies sensible defaults when no parameters are provided"""
+        mock_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        mock_zip.close()
+        mock_uvr.return_value = mock_zip.name
+        
+        try:
+            with open(sample_audio_file, 'rb') as f:
+                response = client.post(
+                    "/uvr",
+                    files={"file": ("test.wav", f, "audio/wav")}
+                )
+            
+            assert response.status_code == 200
+            
+            call_args = mock_uvr.call_args[1]
+            # Verify defaults are applied
+            assert call_args['model'] == 'htdemucs'
+            assert call_args['shifts'] == 1
+            assert call_args['segment'] is None  # 0 should be converted to None
+        finally:
+            if os.path.exists(mock_zip.name):
+                os.remove(mock_zip.name)
+    
+    @patch.object(RVCConverter, 'uvr')
+    def test_uvr_segment_zero_converts_to_none(self, mock_uvr, client, sample_audio_file):
+        """Test UVR endpoint converts segment=0 to None (Demucs default)"""
+        mock_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        mock_zip.close()
+        mock_uvr.return_value = mock_zip.name
+        
+        try:
+            with open(sample_audio_file, 'rb') as f:
+                response = client.post(
+                    "/uvr",
+                    files={"file": ("test.wav", f, "audio/wav")},
+                    data={
+                        "segment": "0"
+                    }
+                )
+            
+            assert response.status_code == 200
+            
+            call_args = mock_uvr.call_args[1]
+            # Verify segment=0 is converted to None
+            assert call_args['segment'] is None
         finally:
             if os.path.exists(mock_zip.name):
                 os.remove(mock_zip.name)

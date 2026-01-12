@@ -40,7 +40,10 @@ Fast start: Replicate (cloud)
 2. In the device UI choose **Backend → Replicate**, paste your API token, pick a model (`rvc_model` or `model_url`), drop a file, and hit **Process**.
 
 Pick a processing mode
-- **UVR (all stems)**: set **Backend → Local**, set `server http://127.0.0.1:8000`, and choose **Mode → UVR**. The device sends your file to `/uvr`, downloads a zip of stems, and drops each stem on its own track. You can pass a Demucs model name with `uvr_model`, add ensembles with `uvr_shifts`, or tweak memory use with `uvr_segment` (seconds).
+- **UVR (all stems)**: set **Backend → Local**, set `server http://127.0.0.1:8000`, and choose **Mode → UVR**. The device sends your file to `/uvr`, downloads a zip of stems, and drops each stem on its own track. Optional parameters:
+  - `uvr_model` (default: `htdemucs`) - Demucs model name for stem separation
+  - `uvr_shifts` (default: `1`) - Number of random shifts for improved quality (higher = slower but cleaner)
+  - `uvr_segment` (default: Demucs default) - Segment length in seconds for memory management (0 uses Demucs default)
 - **Stable Audio**: choose **Mode → Stable Audio**. The device posts the dropped file plus your `stable_prompt` (optional) to `/v2beta/stable-audio/transform` and returns the generated audio as a new track.
 - **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set.
 - **Applio processing**: when using voice conversion with vocal separation enabled, you can additionally process the separated vocals through Applio by setting `applio_enabled true` and `applio_model <MODEL>`. This will generate both the standard RVC output and an additional Applio-processed output file.
@@ -124,7 +127,12 @@ docker compose up -d
 DEMUCS_MODEL=htdemucs_mmi docker compose up -d
 ```
 
-Set `server http://127.0.0.1:8000` in the device. Adjust `uvr_model`, `uvr_shifts`, or `uvr_segment` before pressing **Process**.
+Set `server http://127.0.0.1:8000` in the device. The UVR endpoint uses these defaults:
+- `uvr_model`: `htdemucs` (recommended, 4-stem separation)
+- `uvr_shifts`: `1` (good balance between quality and speed)
+- `uvr_segment`: Uses Demucs default (optimized for memory)
+
+You can override any of these parameters before pressing **Process**.
 
 Optional: Applio integration
 -----------------------------
