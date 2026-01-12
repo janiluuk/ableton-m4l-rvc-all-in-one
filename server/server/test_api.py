@@ -332,6 +332,32 @@ class TestUVREndpoint:
                 os.remove(mock_zip.name)
     
     @patch.object(RVCConverter, 'uvr')
+    def test_uvr_segment_float_zero_converts_to_none(self, mock_uvr, client, sample_audio_file):
+        """Test UVR endpoint converts segment=0.0 (float) to None (Demucs default)"""
+        mock_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        mock_zip.close()
+        mock_uvr.return_value = mock_zip.name
+        
+        try:
+            with open(sample_audio_file, 'rb') as f:
+                response = client.post(
+                    "/uvr",
+                    files={"file": ("test.wav", f, "audio/wav")},
+                    data={
+                        "segment": "0.0"
+                    }
+                )
+            
+            assert response.status_code == 200
+            
+            call_args = mock_uvr.call_args[1]
+            # Verify segment=0.0 is converted to None
+            assert call_args['segment'] is None
+        finally:
+            if os.path.exists(mock_zip.name):
+                os.remove(mock_zip.name)
+    
+    @patch.object(RVCConverter, 'uvr')
     def test_uvr_with_demucs_parameters(self, mock_uvr, client, sample_audio_file):
         """Test UVR endpoint with Demucs-specific parameters"""
         mock_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
