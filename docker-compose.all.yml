@@ -1,10 +1,3 @@
-# Example docker-compose file that runs all services (RVC + Applio + Stable Audio)
-# Copy this to docker-compose.yml and customize as needed, or use specific compose files:
-# - docker-compose.rvc.yml - RVC only
-# - docker-compose.rvc-applio.yml - RVC + Applio
-# - docker-compose.stable-audio.yml - Stable Audio only
-# - docker-compose.all.yml - All services
-
 version: "3.8"
 services:
   rvc:
