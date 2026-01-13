@@ -90,7 +90,9 @@ Run your own processing server using Docker. This requires:
 
 **Quick Setup:**
 
-Note: In the commands below, replace `/path/to/ableton-m4l-rvc-all-in-one` with the actual path where you cloned the repository (e.g., `~/Projects/ableton-m4l-rvc-all-in-one` on macOS/Linux or `C:\Projects\ableton-m4l-rvc-all-in-one` on Windows).
+Note: In the commands below, replace `/path/to/ableton-m4l-rvc-all-in-one` with the actual path where you cloned the repository. Examples:
+- macOS/Linux: `~/Projects/ableton-m4l-rvc-all-in-one`
+- Windows: `C:\Projects\ableton-m4l-rvc-all-in-one` (or use forward slashes: `C:/Projects/ableton-m4l-rvc-all-in-one`)
 
 1. **Start the RVC server:**
    ```bash
@@ -189,8 +191,11 @@ This means Node.js dependencies weren't installed properly:
    ```
 3. Delete the `node_modules` folder if it exists:
    ```bash
-   rm -rf node_modules  # macOS/Linux
-   rmdir /q /s node_modules  # Windows
+   # macOS/Linux
+   rm -rf node_modules
+   
+   # Windows (PowerShell or Command Prompt)
+   if exist node_modules rmdir /S /Q node_modules
    ```
 4. Reinstall dependencies:
    ```bash
