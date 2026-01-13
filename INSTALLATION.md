@@ -61,8 +61,9 @@ If you want to create a standalone frozen device:
 2. In Max, go to **File → Open** and select `device_unified/RVC_Unified_Device.maxpat`
 3. Once the patch is open, go to **File → Freeze Device** (or press the ❄️ Freeze button in the device toolbar)
 4. Save the frozen device as `RVC_Unified_Device.amxd` in a location you can remember:
-   - Recommended: Save to `~/Music/Ableton/User Library/Presets/Audio Effects/Max Audio Effect/`
-   - This makes it appear in your Ableton Browser under **User Library → Audio Effects → Max Audio Effect**
+   - Recommended: Save directly to your Ableton User Library (see paths in Step 4 below)
+   - This makes it immediately available in your Ableton Browser under **User Library → Audio Effects → Max Audio Effect**
+   - Alternatively, save anywhere and copy it to the User Library later
 5. The device is now frozen and ready to use in Ableton Live
 
 ### Step 4: Add the Device to Your Ableton User Library (Optional)
@@ -91,9 +92,11 @@ Run your own processing server using Docker. This requires:
 1. **Start the RVC server:**
    ```bash
    cd /path/to/ableton-m4l-rvc-all-in-one
-   docker compose -f docker-compose.rvc.yml build --build-arg RVC_REPO=https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI.git --build-arg RVC_COMMIT=
+   docker compose -f docker-compose.rvc.yml build
    docker compose -f docker-compose.rvc.yml up -d
    ```
+   
+   Note: The build command automatically uses the default RVC repository. To pin to a specific commit, add `--build-arg RVC_COMMIT=<commit-hash>`.
 
 2. **Add voice models:**
    Place your RVC model files in `server/models/<VoiceName>/`:
@@ -181,7 +184,7 @@ This means Node.js dependencies weren't installed properly:
 3. Delete the `node_modules` folder if it exists:
    ```bash
    rm -rf node_modules  # macOS/Linux
-   rmdir /s node_modules  # Windows
+   rmdir /s /q node_modules  # Windows
    ```
 4. Reinstall dependencies:
    ```bash
