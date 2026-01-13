@@ -8,6 +8,15 @@ This project bundles a single Max for Live device that can:
 
 You can run everything locally with Docker or use the Replicate cloud backend. The steps below focus on the simplest, “just make it work” path.
 
+## 📦 New to this plugin? Start here!
+
+**👉 [Complete Installation Guide](INSTALLATION.md)** - Step-by-step instructions for installing the M4L device in Ableton Live, including:
+- Prerequisites and requirements
+- Installing the Max for Live device
+- Setting up the backend (Local or Cloud)
+- First-time configuration
+- Troubleshooting common issues
+
 What’s in the repo
 - `device_unified/` → the Max device (`RVC_Unified_Device.maxpat`), its Node script, and npm deps.
 - `server/` → the FastAPI + Docker server for local processing.
@@ -44,7 +53,7 @@ Pick a processing mode
   - `uvr_shifts` (default: `1`) - Number of random shifts for improved quality (higher = slower but cleaner)
   - `uvr_segment` (default: Demucs default) - Segment length in seconds for memory management (0 uses Demucs default)
 - **Stable Audio**: choose **Mode → Stable Audio**. The device posts the dropped file plus your `stable_prompt` (optional) to `/v2beta/stable-audio/transform` and returns the generated audio as a new track.
-- **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set.
+- **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set. Add `separate true` to automatically separate vocals before conversion, enabling a chained workflow (stem separation → voice conversion).
 - **Applio processing**: when using voice conversion with vocal separation enabled, you can additionally process the separated vocals through Applio by setting `applio_enabled true` and `applio_model <MODEL>`. This will generate both the standard RVC output and an additional Applio-processed output file.
 
 Extra quality-of-life features
