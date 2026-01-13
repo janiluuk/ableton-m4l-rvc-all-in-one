@@ -70,7 +70,8 @@ If you want to create a standalone frozen device:
 
 To make the device easily accessible in Ableton's Browser:
 
-1. In your file browser, copy the `RVC_Unified_Device.amxd` file (or the entire `device_unified` folder)
+1. In your file browser, copy the frozen `RVC_Unified_Device.amxd` file (if you used Option B above)
+   - If you used Option A (.maxpat directly), you can skip this step as the device will load from its original location
 2. Paste it into your Ableton User Library location:
    - **macOS**: `~/Music/Ableton/User Library/Presets/Audio Effects/Max Audio Effect/`
    - **Windows**: `\Users\[username]\Documents\Ableton\User Library\Presets\Audio Effects\Max Audio Effect\`
@@ -96,7 +97,10 @@ Run your own processing server using Docker. This requires:
    docker compose -f docker-compose.rvc.yml up -d
    ```
    
-   Note: The build command automatically uses the default RVC repository. To pin to a specific commit, add `--build-arg RVC_COMMIT=<commit-hash>`.
+   **Optional:** To pin to a specific RVC commit instead of using the latest:
+   ```bash
+   docker compose -f docker-compose.rvc.yml build --build-arg RVC_COMMIT=abc123
+   ```
 
 2. **Add voice models:**
    Place your RVC model files in `server/models/<VoiceName>/`:
@@ -184,7 +188,7 @@ This means Node.js dependencies weren't installed properly:
 3. Delete the `node_modules` folder if it exists:
    ```bash
    rm -rf node_modules  # macOS/Linux
-   rmdir /s /q node_modules  # Windows
+   rmdir /q /s node_modules  # Windows
    ```
 4. Reinstall dependencies:
    ```bash
