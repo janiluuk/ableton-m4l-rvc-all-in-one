@@ -53,7 +53,7 @@ Pick a processing mode
   - `uvr_shifts` (default: `1`) - Number of random shifts for improved quality (higher = slower but cleaner)
   - `uvr_segment` (default: Demucs default) - Segment length in seconds for memory management (0 uses Demucs default)
 - **Stable Audio**: choose **Mode → Stable Audio**. The device posts the dropped file plus your `stable_prompt` (optional) to `/v2beta/stable-audio/transform` and returns the generated audio as a new track.
-- **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set.
+- **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set. Add `separate true` to automatically separate vocals before conversion, enabling a chained workflow (stem separation → voice conversion).
 - **Applio processing**: when using voice conversion with vocal separation enabled, you can additionally process the separated vocals through Applio by setting `applio_enabled true` and `applio_model <MODEL>`. This will generate both the standard RVC output and an additional Applio-processed output file.
 
 Extra quality-of-life features

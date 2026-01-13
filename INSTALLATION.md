@@ -178,6 +178,72 @@ Once you have the device installed:
 5. Click **Process**
 6. Each stem (vocals, drums, bass, other) will be added as a separate track
 
+### Chaining Processes: Stem Separation + Voice Conversion
+
+You can chain processes together to first separate stems, then convert the voice. There are two approaches:
+
+#### Method 1: Automatic Separation with Voice Conversion
+
+Use the built-in `separate` parameter to automatically separate vocals before voice conversion:
+
+1. Set **Mode** to `Voice` (default)
+2. Configure your backend and RVC model as usual
+3. Enable separation by typing: `separate true`
+4. (Optional) Choose separator: `separator demucs` or `separator uvr` (demucs is default)
+5. Drag your audio file onto the drop zone
+6. Click **Process**
+7. The device will:
+   - First separate vocals from the mix
+   - Then apply voice conversion to the isolated vocals
+   - Return the converted vocal track
+
+**Example configuration:**
+```
+server http://127.0.0.1:8000
+rvc_model MyVoiceModel
+separate true
+separator demucs
+```
+
+#### Method 2: Manual Two-Step Process
+
+For more control, manually separate first, then convert:
+
+1. **Step 1 - Separate stems:**
+   - Set **Mode** to `UVR`
+   - Process your audio file
+   - Wait for all stems to be added as separate tracks
+
+2. **Step 2 - Convert the vocal stem:**
+   - Set **Mode** back to `Voice`
+   - Configure your RVC model: `rvc_model MyVoiceModel`
+   - Drag the **vocals** track/clip onto the device
+   - Click **Process**
+   - The converted vocals will be added as a new track
+
+**Tip:** The manual method gives you the opportunity to:
+- Edit or clean up the separated vocals before conversion
+- Try different RVC models on the same vocal stem
+- Keep all intermediate stems for further processing
+
+#### Advanced: Applio Processing Chain
+
+You can also chain Applio processing after voice conversion with automatic separation:
+
+```
+server http://127.0.0.1:8000
+rvc_model MyVoiceModel
+separate true
+applio_enabled true
+applio_model MyApplioModel
+```
+
+This will:
+1. Separate vocals from the mix
+2. Apply RVC voice conversion
+3. Also process through Applio for comparison
+4. Return both RVC and Applio outputs
+
 ## Troubleshooting
 
 ### "Missing module" or "node.script: error loading script" errors
