@@ -8,6 +8,15 @@ This project bundles a single Max for Live device that can:
 
 You can run everything locally with Docker or use the Replicate cloud backend. The steps below focus on the simplest, “just make it work” path.
 
+## 📦 New to this plugin? Start here!
+
+**👉 [Complete Installation Guide](INSTALLATION.md)** - Step-by-step instructions for installing the M4L device in Ableton Live, including:
+- Prerequisites and requirements
+- Installing the Max for Live device
+- Setting up the backend (Local or Cloud)
+- First-time configuration
+- Troubleshooting common issues
+
 What’s in the repo
 - `device_unified/` → the Max device (`RVC_Unified_Device.maxpat`), its Node script, and npm deps.
 - `server/` → the FastAPI + Docker server for local processing.
