@@ -61,7 +61,7 @@ If you want to create a standalone frozen device:
 2. In Max, go to **File → Open** and select `device_unified/RVC_Unified_Device.maxpat`
 3. Once the patch is open, go to **File → Freeze Device** (or press the ❄️ Freeze button in the device toolbar)
 4. Save the frozen device as `RVC_Unified_Device.amxd` in a location you can remember:
-   - Recommended: Save directly to your Ableton User Library (see paths in Step 4 below)
+   - Recommended: Save directly to your Ableton User Library (see paths in the next section below)
    - This makes it immediately available in your Ableton Browser under **User Library → Audio Effects → Max Audio Effect**
    - Alternatively, save anywhere and copy it to the User Library later
 5. The device is now frozen and ready to use in Ableton Live
@@ -74,7 +74,7 @@ To make the device easily accessible in Ableton's Browser:
    - If you used Option A (.maxpat directly), you can skip this step as the device will load from its original location
 2. Paste it into your Ableton User Library location:
    - **macOS**: `~/Music/Ableton/User Library/Presets/Audio Effects/Max Audio Effect/`
-   - **Windows**: `\Users\[username]\Documents\Ableton\User Library\Presets\Audio Effects\Max Audio Effect\`
+   - **Windows**: `C:\Users\[username]\Documents\Ableton\User Library\Presets\Audio Effects\Max Audio Effect\`
 3. Restart Ableton Live
 4. The device will now appear in your Browser under **User Library → Audio Effects → Max Audio Effect**
 
@@ -89,6 +89,8 @@ Run your own processing server using Docker. This requires:
 - At least 8GB GPU VRAM recommended
 
 **Quick Setup:**
+
+Note: In the commands below, replace `/path/to/ableton-m4l-rvc-all-in-one` with the actual path where you cloned the repository (e.g., `~/Projects/ableton-m4l-rvc-all-in-one` on macOS/Linux or `C:\Projects\ableton-m4l-rvc-all-in-one` on Windows).
 
 1. **Start the RVC server:**
    ```bash
