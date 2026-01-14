@@ -39,4 +39,3 @@ services:
       - "8001:8001"
     volumes:
       - ./models:/models
-
