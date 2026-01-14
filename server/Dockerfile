@@ -11,7 +11,7 @@ RUN git clone ${RVC_REPO} /rvc &&     if [ -n "${RVC_COMMIT}" ]; then cd /rvc &&
 
 # ---- Python deps ----
 WORKDIR /app
-COPY server /app
+COPY . /app
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN if [ -f /rvc/requirements.txt ]; then pip3 install --no-cache-dir -r /rvc/requirements.txt || true; fi
 
