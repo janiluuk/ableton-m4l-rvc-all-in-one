@@ -7,6 +7,7 @@ import tempfile, os, shutil
 import urllib.request
 import json
 from rvc_infer import RVCConverter
+from stemxtract_client import StemXtractClient
 
 app = FastAPI(title="RVC Local Service (Pinned + UVR)", version="0.3.0")
 converter = RVCConverter()
@@ -165,6 +166,97 @@ async def list_applio_models():
             return JSONResponse(data)
     except Exception as e:
         return JSONResponse({"error": f"Failed to fetch Applio models: {str(e)}"}, status_code=500)
+
+@app.post("/stemxtract/process")
+async def stemxtract_process(
+    file: UploadFile = File(...),
+    stemxtract_server: Optional[str] = Form("http://192.168.2.12:60000"),
+    task: Optional[str] = Form("remove_vocals"),
+    model_name: Optional[str] = Form("htdemucs"),
+    drums_vol: Optional[float] = Form(1.0),
+    bass_vol: Optional[float] = Form(1.0),
+    other_vol: Optional[float] = Form(1.0),
+    vocals_vol: Optional[float] = Form(1.0),
+    instrumental_volume: Optional[float] = Form(1.0),
+    instrumental_low_gain: Optional[float] = Form(0.0),
+    instrumental_high_gain: Optional[float] = Form(0.0),
+    instrumental_reverb: Optional[float] = Form(0.0),
+    vocal_volume: Optional[float] = Form(1.0),
+    vocal_low_gain: Optional[float] = Form(0.0),
+    vocal_high_gain: Optional[float] = Form(0.0),
+    vocal_reverb: Optional[float] = Form(0.0),
+    trim_silence_chk: Optional[bool] = Form(False)
+):
+    """
+    Process audio track with StemXtract API for stem separation with effects.
+    
+    Returns a zip file containing the final output and individual stems.
+    """
+    try:
+        # Save uploaded file to temporary location
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1] or ".wav") as tmp_in:
+            data = await file.read()
+            tmp_in.write(data)
+            in_path = tmp_in.name
+
+        # Initialize StemXtract client
+        client = StemXtractClient(server_url=stemxtract_server)
+        
+        # Process track
+        result = client.process_track(
+            audio_file_path=in_path,
+            task=task,
+            model_name=model_name,
+            drums_vol=drums_vol,
+            bass_vol=bass_vol,
+            other_vol=other_vol,
+            vocals_vol=vocals_vol,
+            instrumental_volume=instrumental_volume,
+            instrumental_low_gain=instrumental_low_gain,
+            instrumental_high_gain=instrumental_high_gain,
+            instrumental_reverb=instrumental_reverb,
+            vocal_volume=vocal_volume,
+            vocal_low_gain=vocal_low_gain,
+            vocal_high_gain=vocal_high_gain,
+            vocal_reverb=vocal_reverb,
+            trim_silence_chk=trim_silence_chk
+        )
+        
+        # Result is a tuple: (final_output, processing_time, drums, bass, other, vocals)
+        final_output_path, processing_time, drums_path, bass_path, other_path, vocals_path = result
+        
+        # Create a zip file with all outputs
+        zip_dir = tempfile.mkdtemp()
+        output_files = {
+            'final_output.wav': final_output_path,
+            'drums.wav': drums_path,
+            'bass.wav': bass_path,
+            'other.wav': other_path,
+            'vocals.wav': vocals_path
+        }
+        
+        # Copy files to zip directory, skipping None values
+        for name, src_path in output_files.items():
+            if src_path and os.path.exists(src_path):
+                dest = os.path.join(zip_dir, name)
+                shutil.copy2(src_path, dest)
+        
+        # Create zip file
+        zip_tmp_dir = tempfile.mkdtemp()
+        base = os.path.join(zip_tmp_dir, 'stemxtract_outputs')
+        zip_path = shutil.make_archive(base, 'zip', zip_dir)
+        
+        # Clean up input file
+        os.remove(in_path)
+        
+        return FileResponse(
+            zip_path, 
+            filename="stemxtract_outputs.zip", 
+            media_type="application/zip",
+            headers={"X-Processing-Time": str(processing_time)}
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000)

@@ -14,3 +14,4 @@ torchaudio
 python-multipart>=0.0.6
 pytest>=7.0.0
 httpx>=0.24.0
+gradio_client>=0.10.0
