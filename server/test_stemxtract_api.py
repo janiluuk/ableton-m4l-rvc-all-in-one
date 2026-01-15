@@ -27,6 +27,9 @@ sys.modules['gradio_client'] = MagicMock()
 from fastapi.testclient import TestClient
 from main import app
 
+# Test constants
+TEST_STEMXTRACT_SERVER = "http://localhost:60000"
+
 
 @pytest.fixture
 def client():
@@ -100,7 +103,7 @@ class TestStemXtractEndpoint:
                     "/stemxtract/process",
                     files={"file": ("test.wav", f, "audio/wav")},
                     data={
-                        "stemxtract_server": "http://192.168.2.12:60000",
+                        "stemxtract_server": TEST_STEMXTRACT_SERVER,
                         "task": "remove_vocals",
                         "model_name": "htdemucs"
                     }

@@ -5,7 +5,6 @@ Provides a Python interface to the StemXtract Gradio API for stem separation wit
 """
 
 import os
-import tempfile
 from typing import Optional, Tuple
 from gradio_client import Client, handle_file
 

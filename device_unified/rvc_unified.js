@@ -427,7 +427,7 @@ async function runStemXtract() {
   // Add trim silence option
   form.append('trim_silence_chk', String(state.stemxtract_trim_silence));
   
-  status(`Uploading to StemXtract at ${state.server}…`);
+  status(`Uploading to StemXtract via ${state.server}…`);
   const res = await fetch(`${state.server}/stemxtract/process`, { method: 'POST', body: form });
   if (!res.ok) {
     const txt = await res.text();

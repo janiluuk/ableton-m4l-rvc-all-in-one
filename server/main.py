@@ -192,6 +192,7 @@ async def stemxtract_process(
     
     Returns a zip file containing the final output and individual stems.
     """
+    in_path = None
     try:
         # Save uploaded file to temporary location
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1] or ".wav") as tmp_in:
@@ -246,8 +247,8 @@ async def stemxtract_process(
         base = os.path.join(zip_tmp_dir, 'stemxtract_outputs')
         zip_path = shutil.make_archive(base, 'zip', zip_dir)
         
-        # Clean up input file
-        os.remove(in_path)
+        # Clean up temporary directories (keep zip for response)
+        shutil.rmtree(zip_dir, ignore_errors=True)
         
         return FileResponse(
             zip_path, 
@@ -257,6 +258,13 @@ async def stemxtract_process(
         )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        # Clean up input file in all cases
+        if in_path and os.path.exists(in_path):
+            try:
+                os.remove(in_path)
+            except Exception:
+                pass  # Ignore cleanup errors
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000)
