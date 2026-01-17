@@ -4,6 +4,7 @@ Ableton Max4Live RVC All-In-One Stack
 This project bundles a single Max for Live device that can:
 
 - Separate stems with **Ultimate Vocal Remover (UVR5)**.
+- Process stems with advanced effects using **StemXtract**.
 - Convert or transform audio with **Stable Audio** or **RVC voice conversion**.
 
 You can run everything locally with Docker or use the Replicate cloud backend. The steps below focus on the simplest, “just make it work” path.
@@ -52,6 +53,7 @@ Pick a processing mode
   - `uvr_model` (default: `htdemucs`) - Demucs model name for stem separation
   - `uvr_shifts` (default: `1`) - Number of random shifts for improved quality (higher = slower but cleaner)
   - `uvr_segment` (default: Demucs default) - Segment length in seconds for memory management (0 uses Demucs default)
+- **StemXtract (stems with effects)**: set **Mode → StemXtract**, configure your StemXtract server URL, and choose processing options. See [StemXtract Integration Guide](STEMXTRACT.md) for detailed documentation on using advanced stem separation with real-time volume, EQ, compression, reverb, and delay effects.
 - **Stable Audio**: choose **Mode → Stable Audio**. The device posts the dropped file plus your `stable_prompt` (optional) to `/v2beta/stable-audio/transform` and returns the generated audio as a new track.
 - **Voice conversion (RVC)**: choose **Mode → Voice** (default). The device sends your file to the selected RVC backend using the `rvc_model` you set. Add `separate true` to automatically separate vocals before conversion, enabling a chained workflow (stem separation → voice conversion).
 - **Applio processing**: when using voice conversion with vocal separation enabled, you can additionally process the separated vocals through Applio by setting `applio_enabled true` and `applio_model <MODEL>`. This will generate both the standard RVC output and an additional Applio-processed output file.

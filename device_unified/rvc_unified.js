@@ -20,7 +20,7 @@ const WavEncoder = require('wav-encoder');
 
 let state = {
   backend: 'Replicate',           // 'Replicate' or 'Local'
-  mode: 'voice',                  // 'voice' (RVC) or 'stable'
+  mode: 'voice',                  // 'voice' (RVC) or 'stable' or 'uvr' or 'stemxtract'
   apikey: null,                   // Replicate
   server: 'http://127.0.0.1:8000',// Local
   stability_server: 'http://127.0.0.1:7860',
@@ -54,7 +54,25 @@ let state = {
   applio_model: null,
   // Normalization
   normalize: true,
-  target_db: -0.1
+  target_db: -0.1,
+  
+  // StemXtract params
+  stemxtract_server: 'http://192.168.2.12:60000',
+  stemxtract_task: 'remove_vocals',
+  stemxtract_model: 'htdemucs',
+  stemxtract_drums_vol: 1.0,
+  stemxtract_bass_vol: 1.0,
+  stemxtract_other_vol: 1.0,
+  stemxtract_vocals_vol: 1.0,
+  stemxtract_instrumental_volume: 1.0,
+  stemxtract_instrumental_low_gain: 0.0,
+  stemxtract_instrumental_high_gain: 0.0,
+  stemxtract_instrumental_reverb: 0.0,
+  stemxtract_vocal_volume: 1.0,
+  stemxtract_vocal_low_gain: 0.0,
+  stemxtract_vocal_high_gain: 0.0,
+  stemxtract_vocal_reverb: 0.0,
+  stemxtract_trim_silence: false
 };
 
 function status(s){ Max.outlet(['status', s]); }
@@ -69,6 +87,8 @@ Max.addHandler('mode', v => {
     state.mode = 'uvr';
   } else if (val.startsWith('stable')) {
     state.mode = 'stable';
+  } else if (val.includes('stemxtract') || val.includes('stem')) {
+    state.mode = 'stemxtract';
   } else {
     state.mode = 'voice';
   }
@@ -90,13 +110,22 @@ Max.addHandler('uvr_model', v => {
   status(`uvr_model=${state.uvr_model}`);
 });
 
-['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem','separator','applio_model'].forEach(k=>{
+Max.addHandler('stemxtract_server', v => {
+  state.stemxtract_server = String(v || '').trim() || 'http://192.168.2.12:60000';
+  status(`stemxtract_server=${state.stemxtract_server}`);
+});
+
+['rvc_model','model_url','output_format','pitch_change','pitch_detection_algorithm','stem','separator','applio_model','stemxtract_task','stemxtract_model'].forEach(k=>{
   Max.addHandler(k, v => { state[k] = (v==null?'':String(v)).trim(); status(`${k}=${state[k]}`); });
 });
 
 ['index_rate','filter_radius','rms_mix_rate','crepe_hop_length','protect',
  'main_vocals_volume_change','backup_vocals_volume_change','instrumental_volume_change',
- 'pitch_change_all','target_db','uvr_shifts','uvr_segment']
+ 'pitch_change_all','target_db','uvr_shifts','uvr_segment',
+ 'stemxtract_drums_vol','stemxtract_bass_vol','stemxtract_other_vol','stemxtract_vocals_vol',
+ 'stemxtract_instrumental_volume','stemxtract_instrumental_low_gain','stemxtract_instrumental_high_gain',
+ 'stemxtract_instrumental_reverb','stemxtract_vocal_volume','stemxtract_vocal_low_gain',
+ 'stemxtract_vocal_high_gain','stemxtract_vocal_reverb']
 .forEach(k=>{
   Max.addHandler(k, v => { 
     const num = Number(v);
@@ -108,6 +137,7 @@ Max.addHandler('uvr_model', v => {
 Max.addHandler('separate', v => { state.separate = !!Number(v) || v === true; status(`separate=${state.separate}`); });
 Max.addHandler('normalize', v => { state.normalize = !!Number(v) || v === true; status(`normalize=${state.normalize}`); });
 Max.addHandler('applio_enabled', v => { state.applio_enabled = !!Number(v) || v === true; status(`applio_enabled=${state.applio_enabled}`); });
+Max.addHandler('stemxtract_trim_silence', v => { state.stemxtract_trim_silence = !!Number(v) || v === true; status(`stemxtract_trim_silence=${state.stemxtract_trim_silence}`); });
 
 Max.addHandler('process', async () => {
   try {
@@ -117,6 +147,8 @@ Max.addHandler('process', async () => {
       await runStableAudio();
     } else if (mode.startsWith('uvr')) {
       await runUvr();
+    } else if (mode.includes('stemxtract') || mode.includes('stem')) {
+      await runStemXtract();
     } else {
       const backend = state.backend.toLowerCase();
       if (backend.startsWith('rep')) {
@@ -361,6 +393,68 @@ async function runStableAudio() {
   progress(100);
   status('Done');
   Max.outlet(['done', outPath]);
+}
+
+async function runStemXtract() {
+  const form = new FormData();
+  form.append('file', await fs.readFile(state.sourcePath), { filename: path.basename(state.sourcePath) });
+  
+  // Add StemXtract server URL
+  form.append('stemxtract_server', state.stemxtract_server || 'http://192.168.2.12:60000');
+  
+  // Add processing parameters
+  form.append('task', state.stemxtract_task || 'remove_vocals');
+  form.append('model_name', state.stemxtract_model || 'htdemucs');
+  
+  // Add volume controls
+  form.append('drums_vol', String(state.stemxtract_drums_vol));
+  form.append('bass_vol', String(state.stemxtract_bass_vol));
+  form.append('other_vol', String(state.stemxtract_other_vol));
+  form.append('vocals_vol', String(state.stemxtract_vocals_vol));
+  
+  // Add instrumental effects
+  form.append('instrumental_volume', String(state.stemxtract_instrumental_volume));
+  form.append('instrumental_low_gain', String(state.stemxtract_instrumental_low_gain));
+  form.append('instrumental_high_gain', String(state.stemxtract_instrumental_high_gain));
+  form.append('instrumental_reverb', String(state.stemxtract_instrumental_reverb));
+  
+  // Add vocal effects
+  form.append('vocal_volume', String(state.stemxtract_vocal_volume));
+  form.append('vocal_low_gain', String(state.stemxtract_vocal_low_gain));
+  form.append('vocal_high_gain', String(state.stemxtract_vocal_high_gain));
+  form.append('vocal_reverb', String(state.stemxtract_vocal_reverb));
+  
+  // Add trim silence option
+  form.append('trim_silence_chk', String(state.stemxtract_trim_silence));
+  
+  status(`Uploading to StemXtract via ${state.server}…`);
+  const res = await fetch(`${state.server}/stemxtract/process`, { method: 'POST', body: form });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`StemXtract server error: ${res.status} ${txt}`);
+  }
+  
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'stemxtract-'));
+  const zipPath = path.join(tmpDir, 'stemxtract.zip');
+  const zipFile = await fs.open(zipPath, 'w');
+  await res.body.pipeTo(zipFile.createWriteStream());
+  await zipFile.close();
+
+  const outDir = path.join(os.homedir(), 'Music', 'RVC', `stemxtract_${Date.now()}`);
+  await fs.mkdir(outDir, { recursive: true });
+  const zip = new AdmZip(zipPath);
+  zip.extractAllTo(outDir, true);
+
+  const outputs = await listAudioFiles(outDir);
+  if (!outputs.length) throw new Error('StemXtract zip contained no audio files');
+  
+  for (const output of outputs) {
+    Max.outlet(['done', output]);
+    status(`Output: ${path.basename(output)}`);
+  }
+  
+  progress(100);
+  status(`StemXtract outputs ready in ${outDir}`);
 }
 
 async function normalizeWav(filePath, targetDb = -0.1) {

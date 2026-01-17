@@ -22,6 +22,7 @@ sys.modules['uvr5_pack.lib_v5'] = MagicMock()
 sys.modules['uvr5_pack.lib_v5.spec_utils'] = MagicMock()
 sys.modules['uvr5_pack.utils'] = MagicMock()
 sys.modules['uvr5_pack.lib_v5.model_param_init'] = MagicMock()
+sys.modules['gradio_client'] = MagicMock()
 
 from fastapi.testclient import TestClient
 from main import app
